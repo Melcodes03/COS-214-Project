@@ -1,0 +1,4 @@
+*.o
+tividy_test
+tividy_test.exe
+.vscode/
