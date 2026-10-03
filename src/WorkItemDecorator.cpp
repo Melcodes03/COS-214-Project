@@ -22,9 +22,14 @@ bool WorkItemDecorator::reject() { return wrapped->reject(); }
 bool WorkItemDecorator::escalate() { return wrapped->escalate(); }
 bool WorkItemDecorator::cancel() { return wrapped->cancel(); }
 std::string WorkItemDecorator::getStateName() const { return wrapped->getStateName(); }
+WorkItemState* WorkItemDecorator::getState() const { return wrapped->getState(); }
 void WorkItemDecorator::setState(WorkItemState* newState) { wrapped->setState(newState); }
 
 int WorkItemDecorator::getRetryCount() const { return wrapped->getRetryCount(); }
 int WorkItemDecorator::getMaxRetries() const { return wrapped->getMaxRetries(); }
 void WorkItemDecorator::setMaxRetries(int max) { wrapped->setMaxRetries(max); }
+void WorkItemDecorator::setRetryCount(int count) { wrapped->setRetryCount(count); }
 int WorkItemDecorator::getPriority() const { return wrapped->getPriority(); }
+
+WorkItemMemento* WorkItemDecorator::createMemento() const { return wrapped->createMemento(); }
+bool WorkItemDecorator::restore(const WorkItemMemento& memento) { return wrapped->restore(memento); }

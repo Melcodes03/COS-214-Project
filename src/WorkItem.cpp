@@ -1,6 +1,7 @@
 #include "WorkItem.h"
 #include "DepthFirstIterator.h"
 #include "CreatedState.h"
+#include "WorkItemMemento.h"
 
 WorkItem::WorkItem(const std::string& id, const std::string& name)
     : id(id), name(name), state(CreatedState::instance()), retryCount(0), maxRetries(3){}
@@ -57,14 +58,50 @@ bool WorkItem::cancel() { return state->cancel(*this); }
 
 std::string WorkItem::getStateName() const { return state->getName(); }
 
+WorkItemState* WorkItem::getState() const { return state; }
+
 void WorkItem::setState(WorkItemState* newState) { state = newState; }
 
 //Retry limit - guard for state
 int WorkItem::getRetryCount() const { return retryCount; }
 int WorkItem::getMaxRetries() const { return maxRetries; }
 void WorkItem::setMaxRetries(int max) { maxRetries = max; }
+void WorkItem::setRetryCount(int count) { retryCount = count; }
 bool WorkItem::retriesRemaining() const { return getRetryCount() < getMaxRetries(); }
 void WorkItem::useRetry() { retryCount++; }
 
 //Priority
 int WorkItem::getPriority() const { return 0; }
+
+//Memento section
+WorkItemMemento* WorkItem::createMemento() const {
+    WorkItemMemento* memento = new WorkItemMemento(getState(), getRetryCount());
+    for (int i = 0; i < getChildCount(); i++) {
+        memento->addChild(getChild(i)->createMemento());   //deep: every descendant gets its own snapshot
+    }
+    return memento;
+}
+
+bool WorkItem::fits(const WorkItemMemento& memento) const {
+    if (getChildCount() != (int)memento.children.size()) {
+        return false;
+    }
+    for (int i = 0; i < getChildCount(); i++) {
+        if (!getChild(i)->fits(*memento.children[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool WorkItem::restore(const WorkItemMemento& memento) {
+    if (!fits(memento)) {
+        return false;   //checked first, so a failed restore never leaves the tree half-restored
+    }
+    setState(memento.state);
+    setRetryCount(memento.retryCount);
+    for (int i = 0; i < getChildCount(); i++) {
+        getChild(i)->restore(*memento.children[i]);
+    }
+    return true;
+}
