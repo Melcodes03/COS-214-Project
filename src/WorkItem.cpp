@@ -65,3 +65,6 @@ int WorkItem::getMaxRetries() const { return maxRetries; }
 void WorkItem::setMaxRetries(int max) { maxRetries = max; }
 bool WorkItem::retriesRemaining() const { return getRetryCount() < getMaxRetries(); }
 void WorkItem::useRetry() { retryCount++; }
+
+//Priority
+int WorkItem::getPriority() const { return 0; }

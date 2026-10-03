@@ -41,13 +41,16 @@ class WorkItem{
         virtual bool escalate();
         virtual bool cancel();
         virtual std::string getStateName() const;
-        void setState(WorkItemState* newState);
+        virtual void setState(WorkItemState* newState);
         //Retry limit (used by RejectedState). Virtual so decorators can forward.
         virtual int getRetryCount() const;
         virtual int getMaxRetries() const;
         virtual void setMaxRetries(int max);
         bool retriesRemaining() const;
         void useRetry();
+
+        //Decorator Pattern
+        virtual int getPriority() const; 
 };
 
 
