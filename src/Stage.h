@@ -17,6 +17,8 @@ class Stage : public WorkItem {
         int getChildCount() const override;
 
         WorkItem* clone() const override;
-};
+        Stage(const Stage&) = delete;
+        Stage& operator=(const Stage&) = delete;
+};      
 
 #endif //STAGE_H
