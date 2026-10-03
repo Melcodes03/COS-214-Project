@@ -37,12 +37,18 @@ class WorkItemDecorator : public WorkItem {
         bool escalate() override;
         bool cancel() override;
         std::string getStateName() const override;
+        WorkItemState* getState() const override;
         void setState(WorkItemState* newState) override;
 
         int getRetryCount() const override;
         int getMaxRetries() const override;
         void setMaxRetries(int max) override;
+        void setRetryCount(int count) override;
         int getPriority() const override;
+
+        //Memento: the real state lives in the wrapped item, so snapshots go through it
+        WorkItemMemento* createMemento() const override;
+        bool restore(const WorkItemMemento& memento) override;
 };
 
 #endif //WORKITEMDECORATOR_H
