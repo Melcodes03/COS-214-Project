@@ -39,7 +39,37 @@ int main(){
     first.getRoot()->add(new Task("C", "Task C"));
     bool independent = second.getRoot()->getChildCount() == 2;
 
-    bool passed = order == "P A A1 A2 B " && leafRejects && independent;
+    //4. state lifecycle
+    Task t("S", "State test");
+    bool stateOk = t.getStateName() == "Created"
+                && !t.complete() //invalid in Created
+                && t.makeAvailable() && t.assign() && t.start()
+                && t.complete()
+                && t.getStateName() == "Completed"
+                && !t.cancel();    //final state
+
+    //5. retry limit on rework
+    Task r("R", "Retry test");
+    r.setMaxRetries(1);
+    bool retryOk = r.makeAvailable() && r.assign() && r.start()
+                && r.reject() && r.getStateName() == "Rejected"
+                && r.assign() && r.getStateName() == "Assigned"  //first rework allowed
+                && r.getRetryCount() == 1
+                && r.start() && r.reject()
+                && !r.assign()  //no retries left
+                && r.getStateName() == "Rejected"
+                && r.cancel() && r.getStateName() == "Cancelled";
+
+    //6. clones start fresh but keep the configured limit
+    WorkItem* copy = r.clone();
+    bool cloneFresh = copy->getStateName() == "Created" && (copy->getRetryCount() == 0) && (copy->getMaxRetries() == 1);
+    delete copy;
+
+    bool passed = order == "P A A1 A2 B " && leafRejects && independent
+            && stateOk && retryOk && cloneFresh;
+            
     std::cout << (passed ? "All tests passed." : "Tests failed") << std::endl;
+
     return passed ? 0 : 1;
 }
+
