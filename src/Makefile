@@ -1,7 +1,9 @@
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wextra -pedantic
 
-SRCS = WorkItem.cpp Task.cpp Stage.cpp DepthFirstIterator.cpp WorkflowDefinition.cpp WorkflowInstance.cpp main.cpp
+SRCS = WorkItem.cpp Task.cpp Stage.cpp DepthFirstIterator.cpp WorkflowDefinition.cpp WorkflowInstance.cpp \
+       WorkItemState.cpp CreatedState.cpp AvailableState.cpp AssignedState.cpp InProgressState.cpp \
+       CompletedState.cpp RejectedState.cpp EscalatedState.cpp CancelledState.cpp main.cpp
 OBJS = $(SRCS:.cpp=.o)
 TARGET = tividy_test
 
