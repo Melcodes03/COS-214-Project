@@ -1,9 +1,16 @@
 #include "Observer.h"
 
-
-Observer::Observer(WorkItem* subject) : subject(subject){
-
+Observer::Observer(WorkItem *subject) : subject(subject)
+{
+    if (subject)
+    {
+        subject->attach(this);
+    }
 }
-Observer::~Observer(){
-
+Observer::~Observer()
+{
+    if (subject)
+    {
+        subject->detach(this);
+    }
 }

@@ -8,11 +8,12 @@
 class Observer{
     protected:
         WorkItem* subject;
+        std::string oldState;
 
     public:
         Observer(WorkItem* subject);
         virtual ~Observer();
-        virtual void update(WorkItemState* newState) = 0;
+        virtual void update(WorkItemState* newState, std::string oldState) = 0;
 
 };
 
