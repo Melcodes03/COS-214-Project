@@ -49,13 +49,13 @@ WorkItemIterator* WorkItem::createIterator(){
 }
 
 //State section
-bool WorkItem::makeAvailable() { return state->makeAvailable(*this); }
-bool WorkItem::assign() { return state->assign(*this); }
-bool WorkItem::start() { return state->start(*this); }
-bool WorkItem::complete() { return state->complete(*this); }
-bool WorkItem::reject() { return state->reject(*this); }
-bool WorkItem::escalate() { return state->escalate(*this); }
-bool WorkItem::cancel() { return state->cancel(*this); }
+bool WorkItem::makeAvailable() { notify(); return state->makeAvailable(*this); }
+bool WorkItem::assign() { notify(); return state->assign(*this); }
+bool WorkItem::start() { notify(); return state->start(*this); }
+bool WorkItem::complete() { notify(); return state->complete(*this); }
+bool WorkItem::reject() { notify(); return state->reject(*this); }
+bool WorkItem::escalate() { notify(); return state->escalate(*this); }
+bool WorkItem::cancel() { notify(); return state->cancel(*this); }
 
 std::string WorkItem::getStateName() const { return state->getName(); }
 
