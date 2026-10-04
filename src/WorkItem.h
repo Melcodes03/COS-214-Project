@@ -4,6 +4,8 @@
 #include <string> 
 #include <vector>
 
+#include "Observer.h"
+
 class WorkItemIterator;
 class WorkItemState;
 class WorkItemMemento;
@@ -67,9 +69,9 @@ class WorkItem{
         virtual int getPriority() const; 
 
         //Observer Pattern
-        void attach(Observer*);
-        void detach(Observer*);
-        void notify();
+        virtual void attach(Observer*);
+        virtual void detach(Observer*);
+        virtual void notify();
 };
 
 

@@ -49,6 +49,11 @@ class WorkItemDecorator : public WorkItem {
         //Memento: the real state lives in the wrapped item, so snapshots go through it
         WorkItemMemento* createMemento() const override;
         bool restore(const WorkItemMemento& memento) override;
+
+        //Observer Pattern
+        void attach(Observer*) override;
+        void detach(Observer*) override;
+        void notify() override;
 };
 
 #endif //WORKITEMDECORATOR_H

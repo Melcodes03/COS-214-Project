@@ -33,3 +33,16 @@ int WorkItemDecorator::getPriority() const { return wrapped->getPriority(); }
 
 WorkItemMemento* WorkItemDecorator::createMemento() const { return wrapped->createMemento(); }
 bool WorkItemDecorator::restore(const WorkItemMemento& memento) { return wrapped->restore(memento); }
+
+//observer related functions (here they pass on to the wrapped workItem)
+void WorkItemDecorator::attach(Observer* observer){  
+    wrapped->attach(observer);
+}
+
+void WorkItemDecorator::detach(Observer* observer){
+    wrapped->detach(observer);
+}
+
+void WorkItemDecorator::notify(){
+    wrapped->notify();
+}
