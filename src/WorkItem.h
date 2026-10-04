@@ -4,7 +4,7 @@
 #include <string> 
 #include <vector>
 
-#include "Observer.h"
+class Observer;
 
 class WorkItemIterator;
 class WorkItemState;
@@ -71,7 +71,7 @@ class WorkItem{
         //Observer Pattern
         virtual void attach(Observer*);
         virtual void detach(Observer*);
-        virtual void notify();
+        virtual void notify(std::string oldState);
 };
 
 

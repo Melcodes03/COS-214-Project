@@ -49,13 +49,48 @@ WorkItemIterator* WorkItem::createIterator(){
 }
 
 //State section
-bool WorkItem::makeAvailable() { notify(); return state->makeAvailable(*this); }
-bool WorkItem::assign() { notify(); return state->assign(*this); }
-bool WorkItem::start() { notify(); return state->start(*this); }
-bool WorkItem::complete() { notify(); return state->complete(*this); }
-bool WorkItem::reject() { notify(); return state->reject(*this); }
-bool WorkItem::escalate() { notify(); return state->escalate(*this); }
-bool WorkItem::cancel() { notify(); return state->cancel(*this); }
+bool WorkItem::makeAvailable() { 
+    std::string oldState = this->getStateName();
+    bool ok = state->makeAvailable(*this);
+    if (ok) notify(oldState);
+    return ok; 
+ }
+bool WorkItem::assign() { 
+    std::string oldState = this->getStateName();
+    bool ok = state->assign(*this);
+    if (ok) notify(oldState);
+    return ok; 
+ }
+bool WorkItem::start() { 
+    std::string oldState = this->getStateName();
+    bool ok = state->start(*this);
+    if (ok) notify(oldState);
+    return ok; 
+ }
+bool WorkItem::complete() { 
+    std::string oldState = this->getStateName();
+    bool ok = state->complete(*this);
+    if (ok) notify(oldState);
+    return ok; 
+}
+bool WorkItem::reject() { 
+    std::string oldState = this->getStateName();
+    bool ok = state->reject(*this);
+    if (ok) notify(oldState);
+    return ok; 
+}
+bool WorkItem::escalate() {
+    std::string oldState = this->getStateName();
+    bool ok = state->escalate(*this);
+    if (ok) notify(oldState);
+    return ok; 
+}
+bool WorkItem::cancel() {
+    std::string oldState = this->getStateName();
+    bool ok = state->cancel(*this);
+    if (ok) notify(oldState);
+    return ok; 
+}
 
 std::string WorkItem::getStateName() const { return state->getName(); }
 
@@ -125,10 +160,10 @@ void WorkItem::detach(Observer* observer){
     }
 }
 
-void WorkItem::notify(){
+void WorkItem::notify(std::string oldState){
     if (observers.size() > 0){
         for (auto observer : observers){
-            observer->update(state);
+            observer->update(state, oldState);
         }
     }
 }
