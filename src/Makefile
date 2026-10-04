@@ -58,4 +58,4 @@ test_observer: $(OBSERVER_SRCS)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBSERVER_SRCS)
 
 clean: 
-	rm -f $(OBJS) $(TARGET) $(CM_TARGET) $(ADAPTER_TARGET) $(OBSERVER_TARGET) command_memento_test.o $(VS_TARGET) visitor_strategy_test.o
+	rm -f $(OBJS) $(TARGET) $(CM_TARGET) $(ADAPTER_TARGET) $(OBSERVER_TARGET) command_memento_test.o $(VS_TARGET) visitor_strategy_test.o test_observer

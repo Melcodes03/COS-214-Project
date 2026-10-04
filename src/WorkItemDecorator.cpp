@@ -37,9 +37,6 @@ bool WorkItemDecorator::restore(const WorkItemMemento& memento) { return wrapped
 
 void WorkItemDecorator::accept(WorkItemVisitor& visitor) { wrapped->accept(visitor); }
 
-WorkItemMemento *WorkItemDecorator::createMemento() const { return wrapped->createMemento(); }
-bool WorkItemDecorator::restore(const WorkItemMemento &memento) { return wrapped->restore(memento); }
-
 // observer related functions (here they pass on to the wrapped workItem)
 void WorkItemDecorator::attach(Observer *observer)
 {
