@@ -49,6 +49,9 @@ class WorkItemDecorator : public WorkItem {
         //Memento: the real state lives in the wrapped item, so snapshots go through it
         WorkItemMemento* createMemento() const override;
         bool restore(const WorkItemMemento& memento) override;
+
+        //Visitor: a decorated item is still a Task or a Stage underneath
+        void accept(WorkItemVisitor& visitor) override;
 };
 
 #endif //WORKITEMDECORATOR_H

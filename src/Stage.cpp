@@ -1,4 +1,5 @@
 #include "Stage.h"
+#include "WorkItemVisitor.h"
 
 Stage::Stage(const std::string& id, const std::string& name) : WorkItem(id, name){}
 
@@ -35,3 +36,8 @@ WorkItem* Stage::clone() const{
     return copy;
 }
 
+
+//Children are not visited here: the Iterator walks the tree (see WorkItemVisitor::visitAll)
+void Stage::accept(WorkItemVisitor& visitor) {
+    visitor.visitStage(*this);
+}
