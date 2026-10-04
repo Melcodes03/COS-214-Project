@@ -2,7 +2,6 @@
 #include "DepthFirstIterator.h"
 #include "CreatedState.h"
 #include "WorkItemMemento.h"
-#include "Observer.h"
 
 WorkItem::WorkItem(const std::string& id, const std::string& name)
     : id(id), name(name), state(CreatedState::instance()), retryCount(0), maxRetries(3){}
@@ -49,48 +48,13 @@ WorkItemIterator* WorkItem::createIterator(){
 }
 
 //State section
-bool WorkItem::makeAvailable() { 
-    std::string oldState = this->getStateName();
-    bool ok = state->makeAvailable(*this);
-    if (ok) notify(oldState);
-    return ok; 
- }
-bool WorkItem::assign() { 
-    std::string oldState = this->getStateName();
-    bool ok = state->assign(*this);
-    if (ok) notify(oldState);
-    return ok; 
- }
-bool WorkItem::start() { 
-    std::string oldState = this->getStateName();
-    bool ok = state->start(*this);
-    if (ok) notify(oldState);
-    return ok; 
- }
-bool WorkItem::complete() { 
-    std::string oldState = this->getStateName();
-    bool ok = state->complete(*this);
-    if (ok) notify(oldState);
-    return ok; 
-}
-bool WorkItem::reject() { 
-    std::string oldState = this->getStateName();
-    bool ok = state->reject(*this);
-    if (ok) notify(oldState);
-    return ok; 
-}
-bool WorkItem::escalate() {
-    std::string oldState = this->getStateName();
-    bool ok = state->escalate(*this);
-    if (ok) notify(oldState);
-    return ok; 
-}
-bool WorkItem::cancel() {
-    std::string oldState = this->getStateName();
-    bool ok = state->cancel(*this);
-    if (ok) notify(oldState);
-    return ok; 
-}
+bool WorkItem::makeAvailable() { return state->makeAvailable(*this); }
+bool WorkItem::assign() { return state->assign(*this); }
+bool WorkItem::start() { return state->start(*this); }
+bool WorkItem::complete() { return state->complete(*this); }
+bool WorkItem::reject() { return state->reject(*this); }
+bool WorkItem::escalate() { return state->escalate(*this); }
+bool WorkItem::cancel() { return state->cancel(*this); }
 
 std::string WorkItem::getStateName() const { return state->getName(); }
 
@@ -140,30 +104,4 @@ bool WorkItem::restore(const WorkItemMemento& memento) {
         getChild(i)->restore(*memento.children[i]);
     }
     return true;
-}
-
-//observer related functions
-void WorkItem::attach(Observer* observer){  
-    if(observer){
-        observers.push_back(observer);
-    }
-}
-
-void WorkItem::detach(Observer* observer){
-    auto current = observers.begin();
-    while (current != observers.end()) {
-        if (*current == observer) {
-            current = observers.erase(current);
-        } else {
-            ++current;
-        }
-    }
-}
-
-void WorkItem::notify(std::string oldState){
-    if (observers.size() > 0){
-        for (auto observer : observers){
-            observer->update(state, oldState);
-        }
-    }
 }
