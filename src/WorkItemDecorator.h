@@ -3,6 +3,7 @@
 
 #include "WorkItem.h"
 
+class Observer;
 /*Decorator: abstract Decorator
 It is a WorkItem that wraps another WorkItem
 and forwards every operation to it. Concrete decorators override only what
@@ -52,6 +53,11 @@ class WorkItemDecorator : public WorkItem {
 
         //Visitor: a decorated item is still a Task or a Stage underneath
         void accept(WorkItemVisitor& visitor) override;
+
+        //Observer Pattern
+        void attach(Observer*) override;
+        void detach(Observer*) override;
+        void notify(std::string oldState) override;
 };
 
 #endif //WORKITEMDECORATOR_H
