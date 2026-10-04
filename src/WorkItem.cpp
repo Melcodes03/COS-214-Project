@@ -2,6 +2,7 @@
 #include "DepthFirstIterator.h"
 #include "CreatedState.h"
 #include "WorkItemMemento.h"
+#include "Observer.h"
 
 WorkItem::WorkItem(const std::string& id, const std::string& name)
     : id(id), name(name), state(CreatedState::instance()), retryCount(0), maxRetries(3){}
@@ -104,4 +105,30 @@ bool WorkItem::restore(const WorkItemMemento& memento) {
         getChild(i)->restore(*memento.children[i]);
     }
     return true;
+}
+
+//observer related functions
+void WorkItem::attach(Observer* observer){  
+    if(observer){
+        observers.push_back(observer);
+    }
+}
+
+void WorkItem::detach(Observer* observer){
+    auto current = observers.begin();
+    while (current != observers.end()) {
+        if (*current == observer) {
+            current = observers.erase(current);
+        } else {
+            ++current;
+        }
+    }
+}
+
+void WorkItem::notify(){
+    if (observers.size() > 0){
+        for (auto observer : observers){
+            observer->update(state);
+        }
+    }
 }

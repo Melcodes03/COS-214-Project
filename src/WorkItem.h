@@ -2,6 +2,7 @@
 #define WORKITEM_H
 
 #include <string> 
+#include <vector>
 
 class WorkItemIterator;
 class WorkItemState;
@@ -14,6 +15,7 @@ class WorkItem{
         WorkItemState* state;
         int retryCount;  //runtime data: reworks used so far (per instance)
         int maxRetries;  //configuration: reworks allowed after a rejection
+        std::vector<Observer*> observers;   //stores attached observers
 
     private:
         bool fits(const WorkItemMemento& memento) const;
@@ -63,6 +65,11 @@ class WorkItem{
 
         //Decorator Pattern
         virtual int getPriority() const; 
+
+        //Observer Pattern
+        void attach(Observer*);
+        void detach(Observer*);
+        void notify();
 };
 
 
