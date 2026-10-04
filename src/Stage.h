@@ -17,6 +17,7 @@ class Stage : public WorkItem {
         int getChildCount() const override;
 
         WorkItem* clone() const override;
+        void accept(WorkItemVisitor& visitor) override;   //Visitor: ConcreteElement
         Stage(const Stage&) = delete;
         Stage& operator=(const Stage&) = delete;
 };      

@@ -6,6 +6,7 @@
 class WorkItemIterator;
 class WorkItemState;
 class WorkItemMemento;
+class WorkItemVisitor;
 
 class WorkItem{
     protected: 
@@ -63,6 +64,9 @@ class WorkItem{
 
         //Decorator Pattern
         virtual int getPriority() const; 
+
+        //Visitor (Element): each subclass tells the visitor what kind of item it is
+        virtual void accept(WorkItemVisitor& visitor) = 0;
 };
 
 

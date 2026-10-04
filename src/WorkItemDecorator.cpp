@@ -33,3 +33,5 @@ int WorkItemDecorator::getPriority() const { return wrapped->getPriority(); }
 
 WorkItemMemento* WorkItemDecorator::createMemento() const { return wrapped->createMemento(); }
 bool WorkItemDecorator::restore(const WorkItemMemento& memento) { return wrapped->restore(memento); }
+
+void WorkItemDecorator::accept(WorkItemVisitor& visitor) { wrapped->accept(visitor); }
