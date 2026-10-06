@@ -9,6 +9,7 @@ class Observer;
 class WorkItemIterator;
 class WorkItemState;
 class WorkItemMemento;
+class WorkItemVisitor;
 
 class WorkItem{
     protected: 
@@ -68,10 +69,14 @@ class WorkItem{
         //Decorator Pattern
         virtual int getPriority() const; 
 
+        //Visitor (Element): each subclass tells the visitor what kind of item it is
+        virtual void accept(WorkItemVisitor& visitor) = 0;
+        
         //Observer Pattern
         virtual void attach(Observer*);
         virtual void detach(Observer*);
         virtual void notify(std::string oldState);
+
 };
 
 

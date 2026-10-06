@@ -51,6 +51,9 @@ class WorkItemDecorator : public WorkItem {
         WorkItemMemento* createMemento() const override;
         bool restore(const WorkItemMemento& memento) override;
 
+        //Visitor: a decorated item is still a Task or a Stage underneath
+        void accept(WorkItemVisitor& visitor) override;
+
         //Observer Pattern
         void attach(Observer*) override;
         void detach(Observer*) override;
