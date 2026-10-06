@@ -12,7 +12,7 @@ private:
     
 public:
     CommunicationAdapter(/* args */);
-    ~CommunicationAdapter();
+    virtual ~CommunicationAdapter() = 0;
     virtual void send(std::string recipient, std::string message, std::string p = "normal") = 0;
 };
 

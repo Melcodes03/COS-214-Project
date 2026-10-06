@@ -19,7 +19,7 @@ ADAPTER_TARGET = adapter_test
 ADAPTER_SRCS = adapter-test.cpp CommunicationAdapter.cpp EmailConnector.cpp MailService.cpp \
 			   SmsConnector.cpp SmsGateway.cpp
 OBSERVER_TARGET = observer_test
-OBSERVER_SRCS = observer-test.cpp Observer.cpp notificationService.cpp ParticipantObserver.cpp \
+OBSERVER_SRCS = observer-test.cpp Observer.cpp generalObserver.cpp ParticipantObserver.cpp \
 				CommunicationAdapter.cpp Task.cpp WorkItem.cpp DepthFirstIterator.cpp WorkItemState.cpp \
 				CreatedState.cpp AvailableState.cpp AssignedState.cpp InProgressState.cpp CompletedState.cpp \
 				RejectedState.cpp EscalatedState.cpp CancelledState.cpp WorkItemDecorator.cpp \
