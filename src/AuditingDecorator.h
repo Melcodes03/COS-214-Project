@@ -23,6 +23,10 @@ class AuditingDecorator : public WorkItemDecorator {
         bool escalate() override;
         bool cancel() override;
 
+        /// Undo/rollback path: forwards the restore, then logs it, e.g.
+        /// "restore: Assigned -> Available" or "restore: Assigned -> refused".
+        bool restore(const WorkItemMemento& memento) override;
+
         const std::vector<std::string>& getAuditLog() const;
         WorkItem* clone() const override;
 };

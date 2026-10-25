@@ -72,3 +72,19 @@ int CommandHistory::redoCount() const { return (int)undone.size(); }
 std::string CommandHistory::lastCommandName() const {
     return done.empty() ? std::string("") : done.back()->getName();
 }
+
+std::vector<std::string> CommandHistory::getHistory() const {
+    std::vector<std::string> names;
+    for (int i = 0; i < (int)done.size(); i++){
+        names.push_back(done[i]->getName());
+    }
+    return names;
+}
+
+std::vector<std::string> CommandHistory::getRedoList() const {
+    std::vector<std::string> names;
+    for (int i = (int)undone.size() - 1; i >= 0; i--){   //top of the redo stack is redone first
+        names.push_back(undone[i]->getName());
+    }
+    return names;
+}
