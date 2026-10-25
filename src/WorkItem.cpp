@@ -134,8 +134,12 @@ bool WorkItem::restore(const WorkItemMemento& memento) {
     if (!fits(memento)) {
         return false;   //checked first, so a failed restore never leaves the tree half-restored
     }
+    std::string oldState = getStateName();
     setState(memento.state);
     setRetryCount(memento.retryCount);
+    if (oldState != getStateName()) {
+        notify(oldState);   //an undo is a state change too: observers must hear about it
+    }
     for (int i = 0; i < getChildCount(); i++) {
         getChild(i)->restore(*memento.children[i]);
     }

@@ -5,14 +5,14 @@ SRCS = WorkItem.cpp Task.cpp Stage.cpp DepthFirstIterator.cpp WorkflowDefinition
        WorkItemState.cpp CreatedState.cpp AvailableState.cpp AssignedState.cpp InProgressState.cpp \
        CompletedState.cpp RejectedState.cpp EscalatedState.cpp CancelledState.cpp WorkItemDecorator.cpp \
 	   PriorityDecorator.cpp ValidationDecorator.cpp AuditingDecorator.cpp \
-	   WorkItemMemento.cpp TransitionCommand.cpp CommandHistory.cpp \
+	   WorkItemMemento.cpp TransitionCommand.cpp WorkerCommand.cpp CommandHistory.cpp \
 	   WorkItemVisitor.cpp ProgressReportVisitor.cpp EscalationReportVisitor.cpp \
 	   Participant.cpp RoleBasedAssignment.cpp LeastWorkloadAssignment.cpp WorkAllocator.cpp \
 	   SingleApproval.cpp MultiLevelApproval.cpp ApprovalRequest.cpp main.cpp
 OBJS = $(SRCS:.cpp=.o)
 TARGET = tividy_test
 CM_TARGET = cm_test
-CM_OBJS = $(filter-out main.o,$(OBJS)) command_memento_test.o
+CM_OBJS = $(filter-out main.o,$(OBJS)) command_memento_test.o Observer.o
 VS_TARGET = vs_test
 VS_OBJS = $(filter-out main.o,$(OBJS)) visitor_strategy_test.o
 ADAPTER_TARGET = adapter_test
@@ -58,4 +58,4 @@ test_observer: $(OBSERVER_SRCS)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBSERVER_SRCS)
 
 clean: 
-	rm -f $(OBJS) $(TARGET) $(CM_TARGET) $(ADAPTER_TARGET) $(OBSERVER_TARGET) command_memento_test.o $(VS_TARGET) visitor_strategy_test.o test_observer
+	rm -f $(OBJS) $(TARGET) $(CM_TARGET) $(ADAPTER_TARGET) $(OBSERVER_TARGET) command_memento_test.o Observer.o $(VS_TARGET) visitor_strategy_test.o test_observer
