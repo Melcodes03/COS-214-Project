@@ -1,6 +1,8 @@
 #include "EscalationReportVisitor.h"
 #include "Task.h"
 #include "Stage.h"
+#include "EscalatedState.h"
+#include "RejectedState.h"
 
 //A stage is visited before its children (depth-first), so it records which
 //children are its own; each task can then look up the stage it belongs to.
@@ -10,12 +12,14 @@ void EscalationReportVisitor::visitStage(Stage& stage) {
     }
 }
 
+//States are shared singletons, so comparing the state object itself tells us
+//which state the task is in without comparing state names as text.
 void EscalationReportVisitor::visitTask(Task& task) {
-    std::string state = task.getStateName();
-    if (state == "Escalated" || state == "Rejected") {
+    WorkItemState* state = task.getState();
+    if (state == EscalatedState::instance() || state == RejectedState::instance()) {
         std::map<std::string, std::string>::const_iterator parent = stageOf.find(task.getId());
         std::string where = parent == stageOf.end() ? "no stage" : parent->second;
-        flagged.push_back(task.getId() + " (" + where + "): " + state);
+        flagged.push_back(task.getId() + " (" + where + "): " + task.getStateName());
     }
 }
 
