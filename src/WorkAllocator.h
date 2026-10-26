@@ -60,6 +60,10 @@ class WorkAllocator {
         /// Forgets who holds @p itemId (for example once it is completed or cancelled).
         void release(const std::string& itemId);
 
+        /// Puts back who holds @p itemId and at which level. Used only to undo an allocation
+        /// (see AllocationCommand). A null @p who forgets the item. It does not touch the item
+        /// or the participants; the caller restores those.
+        void restoreAssignment(const std::string& itemId, Participant* who, AssignmentHandler* level);
         Participant* getAssignee(const std::string& itemId) const;
 
         /// The level of the chain that holds @p itemId, or nullptr if unknown or there is no chain.

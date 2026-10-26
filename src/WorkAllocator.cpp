@@ -96,6 +96,19 @@ void WorkAllocator::release(const std::string& itemId) {
     holder.erase(itemId);
 }
 
+void WorkAllocator::restoreAssignment(const std::string& itemId, Participant* who, AssignmentHandler* level) {
+    if (who == nullptr) {
+        release(itemId);
+        return;
+    }
+    assignee[itemId] = who;
+    if (level != nullptr) {
+        holder[itemId] = level;
+    } else {
+        holder.erase(itemId);
+    }
+}
+
 Participant* WorkAllocator::getAssignee(const std::string& itemId) const {
     std::map<std::string, Participant*>::const_iterator found = assignee.find(itemId);
     return found == assignee.end() ? nullptr : found->second;
