@@ -25,6 +25,12 @@ class ApprovalRequest {
         //returns the decision after this vote; votes after a decision are ignored
         ApprovalStrategy::Decision vote(bool approve);
         bool deadlinePassed();   //escalates if still pending; false if nothing to escalate
+        int voteCount() const;
+        /// Takes back the most recent vote, so the request is pending again. Used only to undo a
+        /// vote (see ApprovalCommand). It does NOT touch the item: whoever undoes the vote restores
+        /// the item too (ApprovalCommand does this with a WorkItemMemento).
+        /// @return false if there was no vote to take back.
+        bool undoLastVote();
         ApprovalStrategy::Decision getDecision() const;
 };
 

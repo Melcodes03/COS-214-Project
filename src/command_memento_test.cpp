@@ -12,6 +12,15 @@
 #include "CommandHistory.h"
 #include "Observer.h"
 #include "Participant.h"
+#include "WorkAllocator.h"
+#include "LeastWorkloadAssignment.h"
+#include "LevelHandler.h"
+#include "ManagerHandler.h"
+#include "AllocationCommand.h"
+#include "ApprovalCommand.h"
+#include "ApprovalRequest.h"
+#include "SingleApproval.h"
+#include "MultiLevelApproval.h"
 
 static int failures = 0;
 static void check(bool ok, const char* what){
@@ -24,6 +33,14 @@ static TransitionCommand* cmd(WorkItem* item, TransitionCommand::Transition t, c
     return new TransitionCommand(item, t, name);
 }
 
+
+//the invariant the bugs broke: a worker's task count equals the items on their worklist
+static bool consistent(Participant& p){
+    return p.getActiveTasks() == (int)p.getWorklist().size();
+}
+static int totalLoad(Participant& a, Participant& b){
+    return a.getActiveTasks() + b.getActiveTasks();
+}
 
 //records every notification it receives
 struct SpyObserver : public Observer {
@@ -304,6 +321,179 @@ int main(){
         p.start(item, h);
         check(!p.complete(item, h), "validation still blocks a worker's complete");
         check(p.getActiveTasks() == 1 && item->getStateName() == "InProgress", "blocked complete kept the worker's task");
+        delete item;
+    }
+
+
+    //19. BUG 1 fixed: undoing "complete" puts the item back on the worker's worklist
+    {
+        Task t("T", "Report");
+        Participant p("Thandi", "clerk", 4);
+        WorkAllocator a(new LeastWorkloadAssignment());
+        a.addParticipant(&p);
+        CommandHistory h;
+        t.makeAvailable(); a.allocate(t);
+        p.start(&t, h); p.complete(&t, h);
+        check(p.getWorklist().empty() && p.getActiveTasks() == 0, "after complete: worklist and workload empty");
+        h.undo();
+        check(t.getStateName() == "InProgress", "undo complete: item back in progress");
+        check(p.getWorklist().size() == 1 && p.getWorklist()[0] == &t, "undo complete: item back on the worklist");
+        check(consistent(p), "undo complete: workload matches worklist");
+        h.redo();
+        check(p.getWorklist().empty() && consistent(p), "redo complete: off the worklist again");
+    }
+
+    //20. BUG 2 fixed: declining takes the item off the worklist, and undo restores its position
+    {
+        Task t1("T1", "First"), t2("T2", "Second");
+        Participant p("Sipho", "clerk", 4);
+        WorkAllocator a(new LeastWorkloadAssignment());
+        a.addParticipant(&p);
+        CommandHistory h;
+        t1.makeAvailable(); a.allocate(t1);
+        t2.makeAvailable(); a.allocate(t2);
+        check(p.getWorklist().size() == 2 && p.getWorklist()[0] == &t1, "worker holds both, T1 first");
+        check(p.decline(&t1, h) && t1.getStateName() == "Available", "declined T1 returns to Available");
+        check(p.getWorklist().size() == 1 && p.getWorklist()[0] == &t2 && consistent(p), "declined item left the worklist");
+        h.undo();
+        check(p.getWorklist().size() == 2 && p.getWorklist()[0] == &t1 && p.getWorklist()[1] == &t2, "undo decline: T1 back in its original position");
+        check(consistent(p) && t1.getStateName() == "Assigned", "undo decline: workload matches worklist");
+    }
+
+    //21. allocation goes through history: undoable, redoable, and refused cleanly
+    {
+        Task t("T", "Report");
+        Participant p("Thandi", "clerk", 4);
+        std::vector<Participant*> everyone(1, &p);
+        WorkAllocator a(new LeastWorkloadAssignment());
+        a.addParticipant(&p);
+        CommandHistory h;
+        check(!h.execute(new AllocationCommand(&a, &t, everyone, &WorkAllocator::allocate, "Assign Report")), "allocating a Created item is refused");
+        check(h.getHistory().empty() && p.getActiveTasks() == 0, "refused allocation left no trace");
+        t.makeAvailable();
+        check(h.execute(new AllocationCommand(&a, &t, everyone, &WorkAllocator::allocate, "Assign Report")), "allocation of an Available item works");
+        check(t.getStateName() == "Assigned" && a.getAssignee("T") == &p && p.getActiveTasks() == 1 && consistent(p), "item assigned, recorded, worker loaded");
+        h.undo();
+        check(t.getStateName() == "Available" && a.getAssignee("T") == nullptr, "undo: item Available, allocator forgot it");
+        check(p.getActiveTasks() == 0 && p.getWorklist().empty(), "undo: worker freed");
+        h.redo();
+        check(t.getStateName() == "Assigned" && a.getAssignee("T") == &p && consistent(p), "redo: assigned again");
+    }
+
+    //22. BUG 3 fixed: decline, re-assign, then undo everything: the workload stays correct at every step
+    {
+        Task t("T", "Report");
+        Participant p1("P1", "clerk", 4), p2("P2", "clerk", 4);
+        std::vector<Participant*> everyone;
+        everyone.push_back(&p1); everyone.push_back(&p2);
+        WorkAllocator a(new LeastWorkloadAssignment());
+        a.addParticipant(&p1); a.addParticipant(&p2);
+        CommandHistory h;
+        t.makeAvailable();
+        h.execute(new AllocationCommand(&a, &t, everyone, &WorkAllocator::allocate, "Assign"));
+        Participant* first = a.getAssignee("T");
+        check(first != nullptr && totalLoad(p1, p2) == 1, "assigned: one task in total");
+        first->decline(&t, h);
+        check(totalLoad(p1, p2) == 0 && consistent(p1) && consistent(p2), "declined: no task in total");
+        h.execute(new AllocationCommand(&a, &t, everyone, &WorkAllocator::allocate, "Assign again"));
+        check(totalLoad(p1, p2) == 1 && t.getStateName() == "Assigned" && consistent(p1) && consistent(p2), "re-assigned: one task in total");
+        h.undo();
+        check(totalLoad(p1, p2) == 0 && t.getStateName() == "Available" && consistent(p1) && consistent(p2), "undo re-assign: no task in total");
+        h.undo();
+        check(totalLoad(p1, p2) == 1 && t.getStateName() == "Assigned" && a.getAssignee("T") == first, "undo decline: back with the first worker, one task in total");
+        check(consistent(p1) && consistent(p2), "worklists agree with workloads");
+        h.undo();
+        check(totalLoad(p1, p2) == 0 && t.getStateName() == "Available" && a.getAssignee("T") == nullptr, "undo first assignment: nothing held");
+    }
+
+    //23. escalate and reassign through history, with a chain of levels
+    {
+        Task t("T", "Report");
+        Participant clerk("Thandi", "clerk", 4), boss("Naledi", "Manager", 4);
+        std::vector<Participant*> everyone;
+        everyone.push_back(&clerk); everyone.push_back(&boss);
+        WorkAllocator a(new LeastWorkloadAssignment());
+        LevelHandler* level = new LevelHandler("clerk", 1, new LeastWorkloadAssignment());
+        level->setNext(new ManagerHandler(&boss));
+        a.setChain(level);
+        a.addParticipant(&clerk); a.addParticipant(&boss);
+        CommandHistory h;
+        t.makeAvailable();
+        h.execute(new AllocationCommand(&a, &t, everyone, &WorkAllocator::allocate, "Assign"));
+        clerk.start(&t, h);
+        check(a.getAssignee("T") == &clerk && t.getStateName() == "InProgress", "clerk has it and started");
+        check(h.execute(new AllocationCommand(&a, &t, everyone, &WorkAllocator::escalate, "Escalate")), "no response: escalated");
+        check(a.getAssignee("T") == &boss && boss.getActiveTasks() == 1 && clerk.getActiveTasks() == 0, "manager has it, clerk freed");
+        h.undo();
+        check(t.getStateName() == "InProgress" && a.getAssignee("T") == &clerk, "undo escalate: back with the clerk, in progress");
+        check(clerk.getActiveTasks() == 1 && clerk.getWorklist().size() == 1 && boss.getActiveTasks() == 0 && boss.getWorklist().empty(), "undo escalate: both workloads and worklists restored");
+        check(a.getLevel("T") != nullptr, "undo escalate: allocator remembers the clerk level");
+    }
+    {
+        Task t("T", "Report");
+        Participant clerk("Thandi", "clerk", 4), boss("Naledi", "Manager", 4);
+        std::vector<Participant*> everyone;
+        everyone.push_back(&clerk); everyone.push_back(&boss);
+        WorkAllocator a(new LeastWorkloadAssignment());
+        LevelHandler* level = new LevelHandler("clerk", 1, new LeastWorkloadAssignment());
+        level->setNext(new ManagerHandler(&boss));
+        a.setChain(level);
+        a.addParticipant(&clerk); a.addParticipant(&boss);
+        CommandHistory h;
+        t.makeAvailable();
+        h.execute(new AllocationCommand(&a, &t, everyone, &WorkAllocator::allocate, "Assign"));
+        clerk.decline(&t, h);
+        check(h.execute(new AllocationCommand(&a, &t, everyone, &WorkAllocator::reassign, "Reassign")) && a.getAssignee("T") == &boss, "declined item passed up to the manager");
+        h.undo();
+        h.undo();
+        check(t.getStateName() == "Assigned" && a.getAssignee("T") == &clerk && clerk.getActiveTasks() == 1 && boss.getActiveTasks() == 0, "undo reassign and decline: back with the clerk");
+        check(consistent(clerk) && consistent(boss), "worklists agree with workloads");
+    }
+
+    //24. BUG 4 fixed: approvals go through history
+    {
+        Task t("T", "Report");
+        t.makeAvailable(); t.assign(); t.start();
+        ApprovalRequest req(&t, new SingleApproval());
+        CommandHistory h;
+        check(h.execute(new ApprovalCommand(&req, &t, true, "Approver approves")), "an approval vote is recorded");
+        check(t.getStateName() == "Completed" && req.getDecision() == ApprovalStrategy::APPROVED, "the vote completed the item");
+        check(!h.execute(new ApprovalCommand(&req, &t, false, "Late vote")), "a vote after the decision is refused");
+        check(h.getHistory().size() == 1, "the refused vote is not in the history");
+        h.undo();
+        check(t.getStateName() == "InProgress" && req.getDecision() == ApprovalStrategy::PENDING && req.voteCount() == 0, "undo: item in progress, request pending, vote taken back");
+        check(h.execute(new ApprovalCommand(&req, &t, false, "Approver rejects")) && t.getStateName() == "Rejected" && req.getDecision() == ApprovalStrategy::REJECTED, "a different vote after the undo rejects the item");
+        h.undo();
+        h.redo();
+        check(t.getStateName() == "Rejected" && req.voteCount() == 1, "redo repeats the rejection");
+    }
+    {
+        Task t("T", "Report");
+        t.makeAvailable(); t.assign(); t.start();
+        ApprovalRequest req(&t, new MultiLevelApproval(2));
+        CommandHistory h;
+        h.execute(new ApprovalCommand(&req, &t, true, "Level 1 approves"));
+        check(req.getDecision() == ApprovalStrategy::PENDING && t.getStateName() == "InProgress" && req.voteCount() == 1, "first of two approvals leaves it pending");
+        h.execute(new ApprovalCommand(&req, &t, true, "Level 2 approves"));
+        check(t.getStateName() == "Completed", "second approval completes the item");
+        h.rollbackTo(0);
+        check(t.getStateName() == "InProgress" && req.voteCount() == 0 && req.getDecision() == ApprovalStrategy::PENDING, "rollback takes back both votes");
+    }
+
+    //25. undoing an approval tells observers and the audit log
+    {
+        AuditingDecorator* item = new AuditingDecorator(new Task("A", "Audited"));
+        item->makeAvailable(); item->assign(); item->start();
+        {
+            SpyObserver spy(item);
+            ApprovalRequest req(item, new SingleApproval());
+            CommandHistory h;
+            h.execute(new ApprovalCommand(&req, item, true, "Approve"));
+            int calls = spy.calls;
+            h.undo();
+            check(spy.calls == calls + 1 && spy.lastOld == "Completed" && spy.lastNew == "InProgress", "undoing the approval notified the observer");
+            check(item->getAuditLog().back() == "restore: Completed -> InProgress", "undoing the approval is in the audit log");
+        }
         delete item;
     }
 

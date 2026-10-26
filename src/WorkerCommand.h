@@ -10,8 +10,10 @@ class Participant;
 ///
 /// It wraps a TransitionCommand, which already knows how to snapshot and restore
 /// the work item, and adds the one thing a worker action also changes: the
-/// participant's workload. Without this, undoing "complete" would put the item
-/// back in progress but leave the worker's task count wrong.
+/// participant's workload and worklist. Without this, undoing "complete" would put the
+/// item back in progress but leave the worker's task count and worklist wrong.
+/// When an action hands the item back (complete, decline) the item leaves the worker's
+/// worklist; undo puts it back in the same position.
 class WorkerCommand : public Command {
     public:
         /// @param worker        the participant doing the action (not owned)
@@ -34,9 +36,12 @@ class WorkerCommand : public Command {
 
     private:
         Participant* worker;
+        WorkItem* target;
         TransitionCommand* inner;   //owned
         bool releasesWork;
         bool released;              //did execute() actually lower the workload?
+        int listIndex;              //where target sat in the worker's worklist before execute(), -1 if not listed
+        bool removedFromList;       //did execute() take target out of the worklist?
 };
 
 #endif //WORKERCOMMAND_H

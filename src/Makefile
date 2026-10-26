@@ -5,7 +5,7 @@ SRCS = WorkItem.cpp Task.cpp Stage.cpp DepthFirstIterator.cpp WorkflowDefinition
        WorkItemState.cpp CreatedState.cpp AvailableState.cpp AssignedState.cpp InProgressState.cpp \
        CompletedState.cpp RejectedState.cpp EscalatedState.cpp CancelledState.cpp WorkItemDecorator.cpp \
 	   PriorityDecorator.cpp ValidationDecorator.cpp AuditingDecorator.cpp \
-	   WorkItemMemento.cpp TransitionCommand.cpp WorkerCommand.cpp CommandHistory.cpp \
+	   WorkItemMemento.cpp TransitionCommand.cpp WorkerCommand.cpp AllocationCommand.cpp ApprovalCommand.cpp CommandHistory.cpp \
 	   WorkItemVisitor.cpp ProgressReportVisitor.cpp EscalationReportVisitor.cpp \
 	   Participant.cpp RoleBasedAssignment.cpp LeastWorkloadAssignment.cpp WorkAllocator.cpp \
 	   AssignmentHandler.cpp LevelHandler.cpp ManagerHandler.cpp ReportScreen.cpp \
