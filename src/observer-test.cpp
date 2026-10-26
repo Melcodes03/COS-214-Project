@@ -74,8 +74,9 @@ int main()
     {
         Task t("T4", "Shared");
         generalObserver n(&t, &channel, "cy@example.com");
-        ParticipantObserver all(&t, "Dee", "");
-        ParticipantObserver escalationsOnly(&t, "Eli", "Escalated");
+        Participant p1("P1", "clerk", 4), p2("P2", "clerk", 4);
+        ParticipantObserver all(&t, "", &p1);
+        ParticipantObserver escalationsOnly(&t, "Escalated", &p2);
         size_t before = channel.sent.size();
         t.makeAvailable();
         t.assign();
@@ -84,13 +85,14 @@ int main()
         check(channel.sent.size() == before + 4, "notification service heard all four");
         check(all.getInbox().size() == 4, "participant following everything got four");
         check(escalationsOnly.getInbox().size() == 1, "participant interested in Escalated got one");
-        check(escalationsOnly.getInbox()[0] == "Eli was told: T4 InProgress -> Escalated", "inbox text is correct");
+        check(escalationsOnly.getInbox()[0] == "P2 was told: T4 InProgress -> Escalated", "inbox text is correct");
     }
 
     std::cout << "5. detach() stops further messages" << std::endl;
     {
         Task t("T5", "Detach me");
-        ParticipantObserver p(&t, "Fay", "Available");
+        Participant p3("P3", "Manager", 4);
+        ParticipantObserver p(&t, "Available", &p3);
         t.makeAvailable();
         t.detach(&p);
         t.assign();

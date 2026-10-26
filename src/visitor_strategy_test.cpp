@@ -81,8 +81,9 @@ int main(){
     }
 
     //4. Strategy: role-based assignment, then swap to least-workload at runtime
+    int capacity = 4;
     {
-        Participant clerk("Thandi", "Clerk"), manager("Sipho", "Manager"), clerk2("Ayanda", "Clerk");
+        Participant clerk("Thandi", "Clerk", capacity), manager("Sipho", "Manager", capacity), clerk2("Ayanda", "Clerk", capacity);
         WorkAllocator allocator(new RoleBasedAssignment("Manager"));
         allocator.addParticipant(&clerk);
         allocator.addParticipant(&manager);

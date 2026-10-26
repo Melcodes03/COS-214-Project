@@ -1,7 +1,7 @@
 #include "ParticipantObserver.h"
 
-ParticipantObserver::ParticipantObserver(WorkItem* subject,  std::string interestedState = "", Participant* p) : Observer(subject), observerState(subject->getState()),
-      participantName(participantName), interestedState(interestedState){
+ParticipantObserver::ParticipantObserver(WorkItem* subject, std::string interestedState, Participant* p)
+    : Observer(subject), observerState(subject->getState()), interestedState(interestedState) {
         channel = nullptr;
         setParticipant(p);
 }

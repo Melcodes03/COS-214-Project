@@ -4,7 +4,7 @@
 #include "CommandHistory.h"
 
 Participant::Participant(const std::string& name, const std::string& role, int capacity)
-    : name(name), role(role), activeTasks(0), available(true), capacity(capacity){}
+    : name(name), role(role), activeTasks(0), capacity(capacity), available(true){}
 
 std::string Participant::getName() const { return name; }
 std::string Participant::getRole() const { return role; }
@@ -20,10 +20,14 @@ bool Participant::start(WorkItem* item, CommandHistory& history) {
 
 bool Participant::complete(WorkItem* item, CommandHistory& history) {
     if (item == nullptr) return false;
-    return history.execute(new WorkerCommand(this, item, &WorkItem::complete,
+    bool done = history.execute(new WorkerCommand(this, item, &WorkItem::complete,
                                              name + " completes " + item->getName(), true));
-
-    remove(item);
+    
+    if (done){
+        remove(item);
+    }
+    
+    return done;
 }
 
 bool Participant::decline(WorkItem* item, CommandHistory& history) {
@@ -37,7 +41,7 @@ int Participant::getCapacity(){
 }
 
 bool Participant::isAvailable(){
-    available = capacity > activeTasks;     //rechecking
+    available = getCapacity() > activeTasks;     //rechecking
     return available;
 }
 
@@ -56,7 +60,13 @@ void Participant::receive(WorkItem* item){
 }
 
 void Participant::remove(WorkItem* item){
-    worklist.erase(find(worklist.begin(), worklist.end(), item));
+    for (vector<WorkItem*>::iterator current = worklist.begin();
+         current != worklist.end(); ++current) {
+        if (*current == item) {
+            worklist.erase(current);
+            return;
+        }
+    }
 }
 
 vector<WorkItem*>& Participant::getWorklist(){
