@@ -48,7 +48,10 @@ int Participant::getCapacity(){
 }
 
 bool Participant::isAvailable(){
-    return available && capacity > activeTasks;
+    return available && capacity > activeTasks;     
+    /*combines 2 checks: 
+    available: explicit setAvailable(false)—for example, when a participant chooses to be offline
+    capacity > activeTasks: prevents accepting more work once they’re at capacity.*/
 }
 
 void Participant::setAvailable(bool n){
