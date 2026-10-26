@@ -109,7 +109,64 @@ int main(){
         check(nobody.allocate(t4) == nullptr && t4.getStateName() == "Available", "no matching role: item stays Available");
     }
 
-    //5. Strategy: single vs multi-level approval drive the State transitions
+    
+    //5. Participant: capacity, availability, and worklist edge cases
+    {
+        Participant worker("Nandi", "Clerk", 2);
+        Task first("W1", "First"), second("W2", "Second"), third("W3", "Third");
+        check(worker.getCapacity() == 2 && worker.getActiveTasks() == 0,
+              "participant: capacity and initial workload");
+        check(worker.isAvailable() && worker.canTakeWork(),
+              "participant: initially available");
+
+        worker.receive(&first);
+        check(worker.getWorklist().size() == 1 && worker.getWorklist()[0] == &first,
+              "participant: receives work while under capacity");
+        worker.receive(nullptr);
+        check(worker.getWorklist().size() == 1, "participant: ignores a null work item");
+
+        worker.addTask();
+        worker.receive(&second);
+        worker.addTask();
+        check(worker.getActiveTasks() == worker.getCapacity(),
+              "participant: workload reaches capacity");
+        check(!worker.isAvailable() && !worker.canTakeWork(),
+              "participant: unavailable at capacity");
+        worker.receive(&third);
+        check(worker.getWorklist().size() == 2,
+              "participant: does not receive work at capacity");
+
+        worker.finishTask();
+        check(worker.isAvailable(), "participant: available again below capacity");
+        worker.finishTask();
+        worker.finishTask();
+        check(worker.getActiveTasks() == 0,
+              "participant: finishing at zero does not underflow workload");
+
+        worker.remove(&first);
+        check(worker.getWorklist().size() == 1 && worker.getWorklist()[0] == &second,
+              "participant: removes a matching work item only");
+        worker.remove(&third);
+        worker.remove(nullptr);
+        check(worker.getWorklist().size() == 1 && worker.getWorklist()[0] == &second,
+              "participant: removing absent or null work leaves list unchanged");
+
+        worker.setAvailable(false);
+        check(!worker.isAvailable() && !worker.canTakeWork(),
+              "participant: manually unavailable worker cannot take work");
+        worker.receive(&third);
+        check(worker.getWorklist().size() == 1,
+              "participant: receive respects manually unavailable status");
+        worker.setAvailable(true);
+        check(worker.canTakeWork(), "participant: can be made available again");
+
+        Participant zeroCapacity("Zero", "Clerk", 0);
+        zeroCapacity.receive(&third);
+        check(!zeroCapacity.isAvailable() && zeroCapacity.getWorklist().empty(),
+              "participant: zero capacity cannot accept work");
+    }
+
+    //6. Strategy: single vs multi-level approval drive the State transitions
     {
         Task t("S", "Single"); toInProgress(&t);
         ApprovalRequest single(&t, new SingleApproval());

@@ -99,6 +99,36 @@ int main()
         check(p.getInbox().size() == 1, "only the change before detach() was received");
     }
 
+    std::cout << "6. setParticipant updates the participant and handles null" << std::endl;
+    {
+        Task t("T6", "Change participant");
+        Participant first("First", "clerk", 4), second("Second", "manager", 4);
+        ParticipantObserver observer(&t, "", &first);
+
+        observer.setParticipant(&second);
+        t.makeAvailable();
+        check(observer.getInbox().size() == 1, "observer receives a notification after reassignment");
+        check(observer.getInbox()[0] == "Second was told: T6 Created -> Available",
+              "notifications use the reassigned participant's name");
+
+        observer.setParticipant(nullptr);
+        t.assign();
+        check(observer.getInbox().size() == 2, "null reassignment does not interrupt notifications");
+        check(observer.getInbox()[1] == "Second was told: T6 Available -> Assigned",
+              "null reassignment leaves the current participant unchanged");
+    }
+
+    std::cout << "7. setParticipant accepts null during construction" << std::endl;
+    {
+        Task t("T7", "No participant");
+        ParticipantObserver observer(&t, "", nullptr);
+        observer.setParticipant(nullptr);
+        check(t.makeAvailable(), "observer with no participant does not block a transition");
+        check(observer.getInbox().size() == 1, "observer with no participant handles notifications");
+        check(observer.getInbox()[0] == " was told: T7 Created -> Available",
+              "notification has an empty participant name when none is set");
+    }
+
     delete decorated;
     std::cout << (ok ? "All observer tests passed." : "Observer tests failed") << std::endl;
     return ok ? 0 : 1;

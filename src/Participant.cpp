@@ -41,8 +41,7 @@ int Participant::getCapacity(){
 }
 
 bool Participant::isAvailable(){
-    available = getCapacity() > activeTasks;     //rechecking
-    return available;
+    return available && capacity > activeTasks;
 }
 
 void Participant::setAvailable(bool n){
@@ -54,7 +53,7 @@ bool Participant::canTakeWork(){
 }
 
 void Participant::receive(WorkItem* item){
-    if (canTakeWork()){
+    if (item != nullptr && canTakeWork()){
         worklist.push_back(item);
     }
 }
