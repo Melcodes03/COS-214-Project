@@ -74,8 +74,9 @@ int main()
     {
         Task t("T4", "Shared");
         generalObserver n(&t, &channel, "cy@example.com");
-        ParticipantObserver all(&t, "Dee", "");
-        ParticipantObserver escalationsOnly(&t, "Eli", "Escalated");
+        Participant p1("P1", "clerk", 4), p2("P2", "clerk", 4);
+        ParticipantObserver all(&t, "", &p1);
+        ParticipantObserver escalationsOnly(&t, "Escalated", &p2);
         size_t before = channel.sent.size();
         t.makeAvailable();
         t.assign();
@@ -84,17 +85,48 @@ int main()
         check(channel.sent.size() == before + 4, "notification service heard all four");
         check(all.getInbox().size() == 4, "participant following everything got four");
         check(escalationsOnly.getInbox().size() == 1, "participant interested in Escalated got one");
-        check(escalationsOnly.getInbox()[0] == "Eli was told: T4 InProgress -> Escalated", "inbox text is correct");
+        check(escalationsOnly.getInbox()[0] == "P2 was told: T4 InProgress -> Escalated", "inbox text is correct");
     }
 
     std::cout << "5. detach() stops further messages" << std::endl;
     {
         Task t("T5", "Detach me");
-        ParticipantObserver p(&t, "Fay", "Available");
+        Participant p3("P3", "Manager", 4);
+        ParticipantObserver p(&t, "Available", &p3);
         t.makeAvailable();
         t.detach(&p);
         t.assign();
         check(p.getInbox().size() == 1, "only the change before detach() was received");
+    }
+
+    std::cout << "6. setParticipant updates the participant and handles null" << std::endl;
+    {
+        Task t("T6", "Change participant");
+        Participant first("First", "clerk", 4), second("Second", "manager", 4);
+        ParticipantObserver observer(&t, "", &first);
+
+        observer.setParticipant(&second);
+        t.makeAvailable();
+        check(observer.getInbox().size() == 1, "observer receives a notification after reassignment");
+        check(observer.getInbox()[0] == "Second was told: T6 Created -> Available",
+              "notifications use the reassigned participant's name");
+
+        observer.setParticipant(nullptr);
+        t.assign();
+        check(observer.getInbox().size() == 2, "null reassignment does not interrupt notifications");
+        check(observer.getInbox()[1] == "Second was told: T6 Available -> Assigned",
+              "null reassignment leaves the current participant unchanged");
+    }
+
+    std::cout << "7. setParticipant accepts null during construction" << std::endl;
+    {
+        Task t("T7", "No participant");
+        ParticipantObserver observer(&t, "", nullptr);
+        observer.setParticipant(nullptr);
+        check(t.makeAvailable(), "observer with no participant does not block a transition");
+        check(observer.getInbox().size() == 1, "observer with no participant handles notifications");
+        check(observer.getInbox()[0] == " was told: T7 Created -> Available",
+              "notification has an empty participant name when none is set");
     }
 
     delete decorated;

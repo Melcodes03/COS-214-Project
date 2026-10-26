@@ -24,6 +24,7 @@ ADAPTER_SRCS = adapter-test.cpp CommunicationAdapter.cpp EmailConnector.cpp Mail
 OBSERVER_TARGET = observer_test
 OBSERVER_SRCS = observer-test.cpp Observer.cpp generalObserver.cpp ParticipantObserver.cpp \
 				CommunicationAdapter.cpp Task.cpp WorkItem.cpp DepthFirstIterator.cpp WorkItemState.cpp \
+				Participant.cpp WorkerCommand.cpp TransitionCommand.cpp CommandHistory.cpp \
 				CreatedState.cpp AvailableState.cpp AssignedState.cpp InProgressState.cpp CompletedState.cpp \
 				RejectedState.cpp EscalatedState.cpp CancelledState.cpp WorkItemDecorator.cpp \
 				PriorityDecorator.cpp ValidationDecorator.cpp AuditingDecorator.cpp WorkItemMemento.cpp
@@ -64,8 +65,11 @@ $(ADAPTER_TARGET): $(ADAPTER_SRCS)
 test_adapter: $(ADAPTER_TARGET)
 	./$(ADAPTER_TARGET)
 
-test_observer: $(OBSERVER_SRCS)
+$(OBSERVER_TARGET): $(OBSERVER_SRCS)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBSERVER_SRCS)
+
+test_observer: $(OBSERVER_TARGET)
+	./$(OBSERVER_TARGET)
 
 clean: 
 	rm -f $(OBJS) $(TARGET) $(CM_TARGET) $(ADAPTER_TARGET) $(OBSERVER_TARGET) command_memento_test.o Observer.o $(VS_TARGET) visitor_strategy_test.o test_observer $(CHAIN_TARGET) chain_report_test.o

@@ -255,7 +255,7 @@ int main(){
     //15. worker commands: start / complete update the item and the workload, and undo reverts both
     {
         Task t("T", "Report");
-        Participant thandi("Thandi", "clerk");
+        Participant thandi("Thandi", "clerk", 4);
         CommandHistory h;
         t.makeAvailable(); t.assign(); thandi.addTask();   //what WorkAllocator::allocate does
         check(thandi.start(&t, h) && t.getStateName() == "InProgress", "worker starts the item");
@@ -272,7 +272,7 @@ int main(){
     //16. decline hands the item back, frees the worker, and is undoable
     {
         Task t("T", "Report");
-        Participant sipho("Sipho", "clerk");
+        Participant sipho("Sipho", "clerk", 6);
         CommandHistory h;
         t.makeAvailable(); t.assign(); sipho.addTask();
         check(sipho.decline(&t, h) && t.getStateName() == "Available", "decline from Assigned returns item to Available");
@@ -284,7 +284,7 @@ int main(){
     //17. refused worker actions change nothing, and workers do not affect each other
     {
         Task a("A", "A"), b("B", "B");
-        Participant p1("P1", "clerk"), p2("P2", "clerk");
+        Participant p1("P1", "clerk", 4), p2("P2", "clerk", 4);
         CommandHistory h;
         a.makeAvailable(); a.assign(); p1.addTask();
         b.makeAvailable(); b.assign(); p2.addTask();
@@ -298,7 +298,7 @@ int main(){
     //18. worker action through a Validation decorator is still blocked
     {
         WorkItem* item = new ValidationDecorator(new Task("V", "Checked"), neverValid);
-        Participant p("P", "clerk");
+        Participant p("P", "clerk", 4);
         CommandHistory h;
         item->makeAvailable(); item->assign(); p.addTask();
         p.start(item, h);
