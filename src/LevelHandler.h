@@ -37,7 +37,7 @@ class LevelHandler : public AssignmentHandler {
 
     private:
         /// Is @p worker in this level and able to take more work right now?
-        bool isFree(const Participant& worker) const;
+        bool isFree(Participant& worker) const;
 };
 
 #endif //LEVELHANDLER_H

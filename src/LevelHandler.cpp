@@ -12,10 +12,8 @@ bool LevelHandler::covers(const Participant& worker) const {
     return worker.getRole() == role;
 }
 
-//TODO(Stephen's Participant update): also require worker.canTakeWork() once
-//Participant has availability and capacity.
-bool LevelHandler::isFree(const Participant& worker) const {
-    return covers(worker);
+bool LevelHandler::isFree(Participant& worker) const {
+    return covers(worker) && worker.canTakeWork();   //right role, available, and below capacity
 }
 
 Participant* LevelHandler::handle(WorkItem& item, const std::vector<Participant*>& candidates) {

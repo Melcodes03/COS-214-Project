@@ -59,9 +59,9 @@ WorkItem* readyTask(const std::string& id, const std::string& name, int priority
 TEST_SUITE("Chain of Responsibility") {
 
     TEST_CASE("a normal task goes to the first level") {
-        Participant thandi("Thandi", "General Assistant");
-        Participant sipho("Sipho", "Technical Assistant");
-        Participant boss("Naledi", "Manager");
+        Participant thandi("Thandi", "General Assistant", 5);
+        Participant sipho("Sipho", "Technical Assistant", 5);
+        Participant boss("Naledi", "Manager", 5);
         std::vector<Participant*> people;
         people.push_back(&thandi);
         people.push_back(&sipho);
@@ -76,10 +76,10 @@ TEST_SUITE("Chain of Responsibility") {
     }
 
     TEST_CASE("a high-priority task skips the levels it is too high for") {
-        Participant thandi("Thandi", "General Assistant");
-        Participant sipho("Sipho", "Technical Assistant");
-        Participant lerato("Lerato", "Engineer");
-        Participant boss("Naledi", "Manager");
+        Participant thandi("Thandi", "General Assistant", 5);
+        Participant sipho("Sipho", "Technical Assistant", 5);
+        Participant lerato("Lerato", "Engineer", 5);
+        Participant boss("Naledi", "Manager", 5);
         std::vector<Participant*> people;
         people.push_back(&thandi);
         people.push_back(&sipho);
@@ -98,8 +98,8 @@ TEST_SUITE("Chain of Responsibility") {
     }
 
     TEST_CASE("a level with nobody in it passes the task on") {
-        Participant lerato("Lerato", "Engineer");
-        Participant boss("Naledi", "Manager");
+        Participant lerato("Lerato", "Engineer", 5);
+        Participant boss("Naledi", "Manager", 5);
         std::vector<Participant*> people;
         people.push_back(&lerato);   //no assistants today
 
@@ -116,9 +116,9 @@ TEST_SUITE("Chain of Responsibility") {
     }
 
     TEST_CASE("each level uses its own strategy to pick the worker") {
-        Participant busy("Thandi", "General Assistant");
-        Participant free("Ayanda", "General Assistant");
-        Participant boss("Naledi", "Manager");
+        Participant busy("Thandi", "General Assistant", 5);
+        Participant free("Ayanda", "General Assistant", 5);
+        Participant boss("Naledi", "Manager", 5);
         busy.addTask();
         busy.addTask();
         std::vector<Participant*> people;
@@ -134,10 +134,34 @@ TEST_SUITE("Chain of Responsibility") {
         delete chain;
     }
 
+    TEST_CASE("a level skips workers who are full or not available") {
+        Participant full("Thandi", "General Assistant", 1);
+        Participant away("Ayanda", "General Assistant", 5);
+        Participant sipho("Sipho", "Technical Assistant", 5);
+        Participant boss("Naledi", "Manager", 5);
+        full.addTask();              //at capacity
+        away.setAvailable(false);    //offline
+        std::vector<Participant*> people;
+        people.push_back(&full);
+        people.push_back(&away);
+        people.push_back(&sipho);
+
+        AssignmentHandler* chain = makeChain(&boss);
+        Task* task = readyTask("T7", "Password reset");
+
+        CHECK(chain->handle(*task, people) == &sipho);   //no free General Assistant
+
+        away.setAvailable(true);
+        CHECK(chain->handle(*task, people) == &away);
+
+        delete task;
+        delete chain;
+    }
+
     TEST_CASE("levelOf finds the level a worker belongs to") {
-        Participant sipho("Sipho", "Technical Assistant");
-        Participant boss("Naledi", "Manager");
-        Participant stranger("Pieter", "Cleaner");
+        Participant sipho("Sipho", "Technical Assistant", 5);
+        Participant boss("Naledi", "Manager", 5);
+        Participant stranger("Pieter", "Cleaner", 5);
 
         AssignmentHandler* chain = makeChain(&boss);
 
@@ -165,8 +189,8 @@ TEST_SUITE("Chain of Responsibility") {
 TEST_SUITE("WorkAllocator with the chain") {
 
     TEST_CASE("allocate assigns the task and remembers the level") {
-        Participant thandi("Thandi", "General Assistant");
-        Participant boss("Naledi", "Manager");
+        Participant thandi("Thandi", "General Assistant", 5);
+        Participant boss("Naledi", "Manager", 5);
         WorkAllocator allocator(new LeastWorkloadAssignment());
         allocator.addParticipant(&thandi);
         allocator.setChain(makeChain(&boss));
@@ -185,10 +209,10 @@ TEST_SUITE("WorkAllocator with the chain") {
     }
 
     TEST_CASE("a declined task goes up one level at a time, ending with the manager") {
-        Participant thandi("Thandi", "General Assistant");
-        Participant sipho("Sipho", "Technical Assistant");
-        Participant lerato("Lerato", "Engineer");
-        Participant boss("Naledi", "Manager");
+        Participant thandi("Thandi", "General Assistant", 5);
+        Participant sipho("Sipho", "Technical Assistant", 5);
+        Participant lerato("Lerato", "Engineer", 5);
+        Participant boss("Naledi", "Manager", 5);
         WorkAllocator allocator(new LeastWorkloadAssignment());
         allocator.addParticipant(&thandi);
         allocator.addParticipant(&sipho);
@@ -218,9 +242,9 @@ TEST_SUITE("WorkAllocator with the chain") {
     }
 
     TEST_CASE("a worker who does not respond: the task is escalated to the next level") {
-        Participant thandi("Thandi", "General Assistant");
-        Participant sipho("Sipho", "Technical Assistant");
-        Participant boss("Naledi", "Manager");
+        Participant thandi("Thandi", "General Assistant", 5);
+        Participant sipho("Sipho", "Technical Assistant", 5);
+        Participant boss("Naledi", "Manager", 5);
         WorkAllocator allocator(new LeastWorkloadAssignment());
         allocator.addParticipant(&thandi);
         allocator.addParticipant(&sipho);
@@ -229,8 +253,11 @@ TEST_SUITE("WorkAllocator with the chain") {
         Task* task = readyTask("T1", "Email bounce");
         REQUIRE(allocator.allocate(*task) == &thandi);
 
+        CHECK(thandi.getWorklist().size() == 1);
         CHECK(allocator.escalate(*task) == &sipho);
         CHECK(thandi.getActiveTasks() == 0);   //freed
+        CHECK(thandi.getWorklist().empty());   //and off their worklist
+        CHECK(sipho.getWorklist().size() == 1);
         CHECK(sipho.getActiveTasks() == 1);
         CHECK(task->getState() == AssignedState::instance());
 
@@ -238,8 +265,8 @@ TEST_SUITE("WorkAllocator with the chain") {
     }
 
     TEST_CASE("invalid escalations change nothing") {
-        Participant thandi("Thandi", "General Assistant");
-        Participant boss("Naledi", "Manager");
+        Participant thandi("Thandi", "General Assistant", 5);
+        Participant boss("Naledi", "Manager", 5);
 
         SUBCASE("no chain set") {
             WorkAllocator allocator(new LeastWorkloadAssignment());
@@ -270,8 +297,8 @@ TEST_SUITE("WorkAllocator with the chain") {
     }
 
     TEST_CASE("without a chain the allocator still uses its strategy") {
-        Participant thandi("Thandi", "General Assistant");
-        Participant sipho("Sipho", "Technical Assistant");
+        Participant thandi("Thandi", "General Assistant", 5);
+        Participant sipho("Sipho", "Technical Assistant", 5);
         thandi.addTask();
         WorkAllocator allocator(new LeastWorkloadAssignment());
         allocator.addParticipant(&thandi);
@@ -283,8 +310,8 @@ TEST_SUITE("WorkAllocator with the chain") {
     }
 
     TEST_CASE("release forgets who holds the task") {
-        Participant thandi("Thandi", "General Assistant");
-        Participant boss("Naledi", "Manager");
+        Participant thandi("Thandi", "General Assistant", 5);
+        Participant boss("Naledi", "Manager", 5);
         WorkAllocator allocator(new LeastWorkloadAssignment());
         allocator.addParticipant(&thandi);
         allocator.setChain(makeChain(&boss));
@@ -422,9 +449,9 @@ TEST_SUITE("Report and escalation screens") {
     }
 
     TEST_CASE("escalating from the screen moves the task up and the report shows it") {
-        Participant thandi("Thandi", "General Assistant");
-        Participant sipho("Sipho", "Technical Assistant");
-        Participant boss("Naledi", "Manager");
+        Participant thandi("Thandi", "General Assistant", 5);
+        Participant sipho("Sipho", "Technical Assistant", 5);
+        Participant boss("Naledi", "Manager", 5);
         WorkAllocator allocator(new LeastWorkloadAssignment());
         allocator.addParticipant(&thandi);
         allocator.addParticipant(&sipho);
@@ -443,8 +470,8 @@ TEST_SUITE("Report and escalation screens") {
     }
 
     TEST_CASE("declining from the screen gives the task to the next level") {
-        Participant thandi("Thandi", "General Assistant");
-        Participant boss("Naledi", "Manager");
+        Participant thandi("Thandi", "General Assistant", 5);
+        Participant boss("Naledi", "Manager", 5);
         WorkAllocator allocator(new LeastWorkloadAssignment());
         allocator.addParticipant(&thandi);
         allocator.setChain(makeChain(&boss));
@@ -463,8 +490,8 @@ TEST_SUITE("Report and escalation screens") {
     }
 
     TEST_CASE("bad input gives a friendly message and changes nothing") {
-        Participant thandi("Thandi", "General Assistant");
-        Participant boss("Naledi", "Manager");
+        Participant thandi("Thandi", "General Assistant", 5);
+        Participant boss("Naledi", "Manager", 5);
         WorkAllocator allocator(new LeastWorkloadAssignment());
         allocator.addParticipant(&thandi);
         allocator.setChain(makeChain(&boss));
