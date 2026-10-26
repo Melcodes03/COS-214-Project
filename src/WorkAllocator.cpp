@@ -26,7 +26,7 @@ Participant* WorkAllocator::allocate(WorkItem& item) {
     if (chosen == nullptr || !item.assign()) {
         return nullptr;   //nobody suitable, or the item is not in a state that can be assigned
     }
-    chosen->addTask();
+    chosen->receive(&item);
     assignee[item.getId()] = chosen;
     return chosen;
 }

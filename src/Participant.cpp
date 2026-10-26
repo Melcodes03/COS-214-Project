@@ -9,8 +9,15 @@ Participant::Participant(const std::string& name, const std::string& role, int c
 std::string Participant::getName() const { return name; }
 std::string Participant::getRole() const { return role; }
 int Participant::getActiveTasks() const { return activeTasks; }
-void Participant::addTask() { activeTasks++; }
-void Participant::finishTask() { if (activeTasks > 0) activeTasks--; }
+
+void Participant::addTask() {
+    activeTasks++;
+}
+
+void Participant::finishTask() { 
+    if (activeTasks > 0) 
+    activeTasks--; 
+}
 
 bool Participant::start(WorkItem* item, CommandHistory& history) {
     if (item == nullptr) return false;
@@ -54,8 +61,10 @@ bool Participant::canTakeWork(){
 
 void Participant::receive(WorkItem* item){
     if (item != nullptr && canTakeWork()){
+        addTask();
         worklist.push_back(item);
     }
+    
 }
 
 void Participant::remove(WorkItem* item){

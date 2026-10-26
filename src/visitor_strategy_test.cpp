@@ -125,9 +125,7 @@ int main(){
         worker.receive(nullptr);
         check(worker.getWorklist().size() == 1, "participant: ignores a null work item");
 
-        worker.addTask();
         worker.receive(&second);
-        worker.addTask();
         check(worker.getActiveTasks() == worker.getCapacity(),
               "participant: workload reaches capacity");
         check(!worker.isAvailable() && !worker.canTakeWork(),
