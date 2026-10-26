@@ -54,6 +54,7 @@ Participant* WorkAllocator::escalate(WorkItem& item) {
     }
     if (current != nullptr) {
         current->finishTask();   //they no longer hold it
+        current->remove(&item);
     }
     return passUp(item);
 }
@@ -61,6 +62,10 @@ Participant* WorkAllocator::escalate(WorkItem& item) {
 Participant* WorkAllocator::reassign(WorkItem& item) {
     if (chain == nullptr) {
         return nullptr;
+    }
+    Participant* current = getAssignee(item.getId());
+    if (current != nullptr) {
+        current->remove(&item);   //decline() already freed their task count
     }
     return passUp(item);
 }
