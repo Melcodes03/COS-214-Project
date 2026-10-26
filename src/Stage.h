@@ -4,6 +4,8 @@
 #include "WorkItem.h"
 #include <vector> 
 
+/// Composite: Composite. Prototype: ConcretePrototype (clone() copies the stage
+/// and calls clone() on every child, so the whole subtree is copied).
 class Stage : public WorkItem {
     private: 
         std::vector<WorkItem*> children;

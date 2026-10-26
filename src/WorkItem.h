@@ -36,6 +36,11 @@ class WorkItem{
         virtual bool add(WorkItem* child);
         virtual WorkItem* getChild(int index) const;
         virtual int getChildCount() const;
+        /// Prototype: clone operation. Returns a deep copy of this item and its
+        /// whole subtree, including any decorators. The copy is fresh: it starts in
+        /// Created with no retries used and no observers, but keeps configuration
+        /// such as maxRetries and priority. WorkflowInstance uses this to give every
+        /// running case its own tree, so one case never changes another.
         virtual WorkItem* clone() const = 0;
 
         //Iterator
