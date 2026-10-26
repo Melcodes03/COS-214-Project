@@ -6,6 +6,13 @@
 
 //Decorator: ConcreteDecorator. Records every lifecycle operation attempted on
 //the work item, including refused ones.
+
+/**
+ * @brief Decorator: ConcreteDecorator. Records every lifecycle operation tried on the item.
+ *
+ * Refused operations are logged too, for example "complete: InProgress -> refused".
+ * A clone starts with an empty log.
+ */
 class AuditingDecorator : public WorkItemDecorator {
     private:
         std::vector<std::string> log;
