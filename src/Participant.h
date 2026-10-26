@@ -2,6 +2,9 @@
 #define PARTICIPANT_H
 
 #include <string>
+#include <vector>
+
+using namespace std;
 
 class WorkItem;
 class CommandHistory;
@@ -12,15 +15,31 @@ class Participant {
         std::string name;
         std::string role;
         int activeTasks;   //current workload
+        int capacity;
+        bool available;
+        vector<WorkItem*> worklist;
 
     public:
-        Participant(const std::string& name, const std::string& role);
+        Participant(const std::string& name, const std::string& role, int capacity);
 
         std::string getName() const;
         std::string getRole() const;
         int getActiveTasks() const;
         void addTask();
         void finishTask();
+        int getCapacity();
+
+        bool isAvailable();
+
+        void setAvailable(bool);
+
+        bool canTakeWork();
+
+        void receive(WorkItem*);
+
+        void remove(WorkItem*);
+
+        vector<WorkItem*>& getWorklist();
 
         /// Worker actions. Each runs as a Command through @p history, so it is
         /// recorded and can be undone. All return false (and change nothing) if
