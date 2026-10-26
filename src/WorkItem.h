@@ -11,6 +11,17 @@ class WorkItemState;
 class WorkItemMemento;
 class WorkItemVisitor;
 
+/**
+ * @brief The common interface of all work: a single Task or a whole Stage.
+ *
+ * WorkItem sits at the centre of the design and plays one role in several patterns:
+ *  - Composite: the Component, so a task and a stage are used the same way
+ *  - State: the Context, which passes every lifecycle operation to its current state
+ *  - Observer: the Subject, which tells attached observers when its state changes
+ *  - Memento: the Originator, which can snapshot and restore itself and its children
+ *  - Visitor: the Element, which accepts visitors that build reports
+ *  - Prototype: the Prototype, which copies itself with clone()
+ */
 class WorkItem{
     protected: 
         std::string id;

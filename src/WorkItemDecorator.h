@@ -8,6 +8,15 @@ class Observer;
 It is a WorkItem that wraps another WorkItem
 and forwards every operation to it. Concrete decorators override only what
 they add to*/
+class Observer;
+/**
+ * @brief Decorator: adds behaviour to a work item without changing what it is.
+ *
+ * A decorator IS a WorkItem that owns another WorkItem and forwards every operation
+ * to it, so the rest of the system cannot tell a plain item from a decorated one.
+ * Concrete decorators override only what they add, and decorators can be stacked,
+ * for example Auditing(Validation(Priority(Task))). The outer layer sees each call first.
+ */
 class WorkItemDecorator : public WorkItem {
     protected:
         WorkItem* wrapped;   //owned: deleted with the decorator
