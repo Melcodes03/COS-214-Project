@@ -3,8 +3,12 @@
 
 #include <string> 
 #include <vector>
+#include <map>
 
 class Observer;
+
+/// Key/value data that belongs to one workflow instance, for example "amount" -> "85000".
+typedef std::map<std::string, std::string> DataMap;
 
 class WorkItemIterator;
 class WorkItemState;
@@ -30,6 +34,7 @@ class WorkItem{
         int retryCount;  //runtime data: reworks used so far (per instance)
         int maxRetries;  //configuration: reworks allowed after a rejection
         std::vector<Observer*> observers;   //stores attached observers
+        std::string requiredRole;           //configuration: role needed to work on this item ("" = any)
 
     private:
         bool fits(const WorkItemMemento& memento) const;
@@ -47,9 +52,11 @@ class WorkItem{
         virtual bool add(WorkItem* child);
         virtual WorkItem* getChild(int index) const;
         virtual int getChildCount() const;
+        /// Prototype: a copy of this item and its subtree. The copy starts in Created with its retry count at 0.
         virtual WorkItem* clone() const = 0;
 
         //Iterator
+        /// Iterator: walks this item and everything inside it. The caller deletes the iterator.
         WorkItemIterator* createIterator(); 
 
         //State (Context) : Virtual so decorators can intercept them
@@ -68,7 +75,9 @@ class WorkItem{
         virtual int getMaxRetries() const;
         virtual void setMaxRetries(int max);
         virtual void setRetryCount(int count);     //needed by Memento
+        /// @return true while the item may still be sent back for rework (guard on Rejected to Assigned)
         bool retriesRemaining() const;
+        /// Counts one rework attempt.
         void useRetry();
 
         //Memento (Originator): snapshot this item and its whole subtree.
@@ -79,6 +88,31 @@ class WorkItem{
 
         //Decorator Pattern
         virtual int getPriority() const; 
+
+        //Routing and engine support
+        /// @brief The role a participant must have to work on this item ("" means any role).
+        /// Copied by clone(), because it is part of the definition and not of one running case.
+        virtual std::string getRequiredRole() const;
+        virtual void setRequiredRole(const std::string& role);
+
+        /// @name State queries
+        /// The engine asks these instead of comparing state names as text.
+        /// @{
+        virtual bool isAvailable() const;
+        virtual bool isCompleted() const;
+        virtual bool isCancelled() const;
+        /// @}
+
+        /**
+         * @brief Moves this item as far forward as it can without a worker.
+         *
+         * For a Task (leaf) this makes it available. It then waits for a worker to
+         * assign, start and complete it. Stage overrides this to run its children.
+         *
+         * @param data the data of the workflow instance (used by routing rules)
+         * @return true once this item is Completed
+         */
+        virtual bool advance(const DataMap& data);
 
         //Visitor (Element): each subclass tells the visitor what kind of item it is
         virtual void accept(WorkItemVisitor& visitor) = 0;
