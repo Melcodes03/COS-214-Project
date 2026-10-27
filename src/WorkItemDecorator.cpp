@@ -32,6 +32,13 @@ void WorkItemDecorator::setMaxRetries(int max) { wrapped->setMaxRetries(max); }
 void WorkItemDecorator::setRetryCount(int count) { wrapped->setRetryCount(count); }
 int WorkItemDecorator::getPriority() const { return wrapped->getPriority(); }
 
+std::string WorkItemDecorator::getRequiredRole() const { return wrapped->getRequiredRole(); }
+void WorkItemDecorator::setRequiredRole(const std::string& role) { wrapped->setRequiredRole(role); }
+bool WorkItemDecorator::isAvailable() const { return wrapped->isAvailable(); }
+bool WorkItemDecorator::isCompleted() const { return wrapped->isCompleted(); }
+bool WorkItemDecorator::isCancelled() const { return wrapped->isCancelled(); }
+bool WorkItemDecorator::advance(const DataMap& data) { return wrapped->advance(data); }
+
 WorkItemMemento* WorkItemDecorator::createMemento() const { return wrapped->createMemento(); }
 bool WorkItemDecorator::restore(const WorkItemMemento& memento) { return wrapped->restore(memento); }
 

@@ -4,11 +4,6 @@
 #include "WorkItem.h"
 
 class Observer;
-/*Decorator: abstract Decorator
-It is a WorkItem that wraps another WorkItem
-and forwards every operation to it. Concrete decorators override only what
-they add to*/
-class Observer;
 /**
  * @brief Decorator: adds behaviour to a work item without changing what it is.
  *
@@ -55,6 +50,14 @@ class WorkItemDecorator : public WorkItem {
         void setMaxRetries(int max) override;
         void setRetryCount(int count) override;
         int getPriority() const override;
+
+        //Routing and engine support: forwarded, because the real item is the wrapped one
+        std::string getRequiredRole() const override;
+        void setRequiredRole(const std::string& role) override;
+        bool isAvailable() const override;
+        bool isCompleted() const override;
+        bool isCancelled() const override;
+        bool advance(const DataMap& data) override;
 
         //Memento: the real state lives in the wrapped item, so snapshots go through it
         WorkItemMemento* createMemento() const override;

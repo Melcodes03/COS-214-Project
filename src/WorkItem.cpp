@@ -1,15 +1,18 @@
 #include "WorkItem.h"
 #include "DepthFirstIterator.h"
 #include "CreatedState.h"
+#include "AvailableState.h"
+#include "CompletedState.h"
+#include "CancelledState.h"
 #include "WorkItemMemento.h"
 #include "Observer.h"
 
 WorkItem::WorkItem(const std::string& id, const std::string& name)
-    : id(id), name(name), state(CreatedState::instance()), retryCount(0), maxRetries(3){}
+    : id(id), name(name), state(CreatedState::instance()), retryCount(0), maxRetries(3), requiredRole(""){}
 
 WorkItem::WorkItem(const WorkItem& other)
     : id(other.id), name(other.name), state(CreatedState::instance()),
-      retryCount(0), maxRetries(other.maxRetries){}
+      retryCount(0), maxRetries(other.maxRetries), requiredRole(other.requiredRole){}
 
 WorkItem& WorkItem::operator=(const WorkItem& other) {
     if (this != &other) {
@@ -18,6 +21,7 @@ WorkItem& WorkItem::operator=(const WorkItem& other) {
         state = CreatedState::instance();
         retryCount = 0;
         maxRetries = other.maxRetries;
+        requiredRole = other.requiredRole;
     }
     return *this;
 }
@@ -108,6 +112,20 @@ void WorkItem::useRetry() { retryCount++; }
 
 //Priority
 int WorkItem::getPriority() const { return 0; }
+
+//Routing and engine support
+std::string WorkItem::getRequiredRole() const { return requiredRole; }
+void WorkItem::setRequiredRole(const std::string& role) { requiredRole = role; }
+
+//Compares against the shared state objects, so no state names are compared as text
+bool WorkItem::isAvailable() const { return getState() == AvailableState::instance(); }
+bool WorkItem::isCompleted() const { return getState() == CompletedState::instance(); }
+bool WorkItem::isCancelled() const { return getState() == CancelledState::instance(); }
+
+bool WorkItem::advance(const DataMap&) {
+    makeAvailable();   //refused (false) unless the item is still Created, so calling it again is safe
+    return isCompleted();
+}
 
 //Memento section
 WorkItemMemento* WorkItem::createMemento() const {
