@@ -32,8 +32,17 @@ void WorkItemDecorator::setMaxRetries(int max) { wrapped->setMaxRetries(max); }
 void WorkItemDecorator::setRetryCount(int count) { wrapped->setRetryCount(count); }
 int WorkItemDecorator::getPriority() const { return wrapped->getPriority(); }
 
-WorkItemMemento *WorkItemDecorator::createMemento() const { return wrapped->createMemento(); }
-bool WorkItemDecorator::restore(const WorkItemMemento &memento) { return wrapped->restore(memento); }
+std::string WorkItemDecorator::getRequiredRole() const { return wrapped->getRequiredRole(); }
+void WorkItemDecorator::setRequiredRole(const std::string& role) { wrapped->setRequiredRole(role); }
+bool WorkItemDecorator::isAvailable() const { return wrapped->isAvailable(); }
+bool WorkItemDecorator::isCompleted() const { return wrapped->isCompleted(); }
+bool WorkItemDecorator::isCancelled() const { return wrapped->isCancelled(); }
+bool WorkItemDecorator::advance(const DataMap& data) { return wrapped->advance(data); }
+
+WorkItemMemento* WorkItemDecorator::createMemento() const { return wrapped->createMemento(); }
+bool WorkItemDecorator::restore(const WorkItemMemento& memento) { return wrapped->restore(memento); }
+
+void WorkItemDecorator::accept(WorkItemVisitor& visitor) { wrapped->accept(visitor); }
 
 // observer related functions (here they pass on to the wrapped workItem)
 void WorkItemDecorator::attach(Observer *observer)

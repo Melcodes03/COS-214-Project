@@ -6,6 +6,13 @@
 
 //Decorator: ConcreteDecorator. Records every lifecycle operation attempted on
 //the work item, including refused ones.
+
+/**
+ * @brief Decorator: ConcreteDecorator. Records every lifecycle operation tried on the item.
+ *
+ * Refused operations are logged too, for example "complete: InProgress -> refused".
+ * A clone starts with an empty log.
+ */
 class AuditingDecorator : public WorkItemDecorator {
     private:
         std::vector<std::string> log;
@@ -22,6 +29,10 @@ class AuditingDecorator : public WorkItemDecorator {
         bool reject() override;
         bool escalate() override;
         bool cancel() override;
+
+        /// Undo/rollback path: forwards the restore, then logs it, e.g.
+        /// "restore: Assigned -> Available" or "restore: Assigned -> refused".
+        bool restore(const WorkItemMemento& memento) override;
 
         const std::vector<std::string>& getAuditLog() const;
         WorkItem* clone() const override;

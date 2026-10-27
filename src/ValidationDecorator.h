@@ -6,6 +6,12 @@
 
 //Decorator: ConcreteDecorator. A work item cannot be completed unless its
 //validation rule passes (the [validation passes] guard on InProgress -> Completed).
+/**
+ * @brief Decorator: ConcreteDecorator. The item cannot be completed unless a validation rule passes.
+ *
+ * This is the [validation passes] guard on the InProgress to Completed transition. If the rule
+ * fails, complete() returns false and the item stays InProgress.
+ */
 class ValidationDecorator : public WorkItemDecorator {
     public:
         typedef std::function<bool(const WorkItem&)> Rule;

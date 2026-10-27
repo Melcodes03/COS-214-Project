@@ -4,6 +4,9 @@
 #include "WorkItemState.h"
 
 //State: AvailableState
+/**
+ * @brief State: ConcreteState. Ready to be picked up. It can be assigned or cancelled.
+ */
 class AvailableState : public WorkItemState {
     public:
         static WorkItemState* instance();

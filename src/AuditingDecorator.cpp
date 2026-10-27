@@ -21,6 +21,13 @@ bool AuditingDecorator::reject() { return audited("reject", &WorkItem::reject); 
 bool AuditingDecorator::escalate() { return audited("escalate", &WorkItem::escalate); }
 bool AuditingDecorator::cancel() { return audited("cancel", &WorkItem::cancel); }
 
+bool AuditingDecorator::restore(const WorkItemMemento& memento) {
+    std::string before = wrapped->getStateName();
+    bool ok = WorkItemDecorator::restore(memento);
+    log.push_back("restore: " + before + " -> " + (ok ? wrapped->getStateName() : std::string("refused")));
+    return ok;
+}
+
 const std::vector<std::string>& AuditingDecorator::getAuditLog() const { return log; }
 
 WorkItem* AuditingDecorator::clone() const {
