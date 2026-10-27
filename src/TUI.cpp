@@ -369,8 +369,9 @@ void TUI::showWorkTree() {
 void TUI::showWorkTreeRecursive(WorkItem* item, int depth) {
     for (int i = 0; i < depth; ++i) out << "    ";
     bool isStage = (item->getChildCount() > 0);
+    out << GREEN;
     out << (isStage ? "[Stage] " : "[Task]  ")
-        << item->getId() << "  " << item->getName()
+        << item->getId() << "  " << item->getName()<< RESET
         << "  {" << item->getStateName() << "}";
 
     // Show who holds it
