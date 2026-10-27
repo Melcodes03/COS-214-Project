@@ -29,6 +29,11 @@ OBSERVER_SRCS = observer-test.cpp Observer.cpp generalObserver.cpp ParticipantOb
 				RejectedState.cpp EscalatedState.cpp CancelledState.cpp WorkItemDecorator.cpp \
 				PriorityDecorator.cpp ValidationDecorator.cpp AuditingDecorator.cpp WorkItemMemento.cpp
 
+# TUI – shared engine sources (everything except main.cpp and other test mains)
+TUI_ENGINE = $(filter-out main.o,$(OBJS)) Observer.o TUI.o IndustrySetup.o
+TUI_TARGET = tividy_tui
+TUI_TEST_TARGET = tui_test_runner
+
 all: $(TARGET)
 
 $(TARGET) : $(OBJS)
@@ -71,5 +76,22 @@ $(OBSERVER_TARGET): $(OBSERVER_SRCS)
 test_observer: $(OBSERVER_TARGET)
 	./$(OBSERVER_TARGET)
 
+# TUI – interactive
+$(TUI_TARGET): $(TUI_ENGINE) tui_main.o
+	$(CXX) $(CXXFLAGS) -o $(TUI_TARGET) $(TUI_ENGINE) tui_main.o
+
+tui: $(TUI_TARGET)
+
+run_tui: $(TUI_TARGET)
+	./$(TUI_TARGET)
+
+# TUI – scripted test
+$(TUI_TEST_TARGET): $(TUI_ENGINE) tui_test.o
+	$(CXX) $(CXXFLAGS) -o $(TUI_TEST_TARGET) $(TUI_ENGINE) tui_test.o
+
+test_tui: $(TUI_TEST_TARGET)
+	./$(TUI_TEST_TARGET)
+
 clean: 
-	rm -f $(OBJS) $(TARGET) $(CM_TARGET) $(ADAPTER_TARGET) $(OBSERVER_TARGET) command_memento_test.o Observer.o $(VS_TARGET) visitor_strategy_test.o test_observer $(CHAIN_TARGET) chain_report_test.o
+	rm -f $(OBJS) $(TARGET) $(CM_TARGET) $(ADAPTER_TARGET) $(OBSERVER_TARGET) command_memento_test.o Observer.o $(VS_TARGET) visitor_strategy_test.o test_observer $(CHAIN_TARGET) chain_report_test.o \
+	      TUI.o IndustrySetup.o tui_main.o tui_test.o $(TUI_TARGET) $(TUI_TEST_TARGET)
