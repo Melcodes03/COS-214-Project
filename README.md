@@ -120,3 +120,5 @@ report/     final PDF report
 
 ## 10. Third-party code
 - doctest 2.4.11, © Viktor Kirilov, MIT licence – `src/doctest.h`.
+- cpp-httplib 0.63.0, © Yuji Hirose, MIT license - `src/httplib.h`
+- json 3.12.0, © Niels Lohmann, MIT license - `src/json.h`
