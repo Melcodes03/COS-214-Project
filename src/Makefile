@@ -10,7 +10,7 @@ SRCS = WorkItem.cpp Task.cpp Stage.cpp DepthFirstIterator.cpp WorkflowDefinition
 	   Participant.cpp RoleBasedAssignment.cpp LeastWorkloadAssignment.cpp WorkAllocator.cpp \
 	   AssignmentHandler.cpp LevelHandler.cpp ManagerHandler.cpp ReportScreen.cpp \
 	   SingleApproval.cpp MultiLevelApproval.cpp ApprovalRequest.cpp \
-	   DefinitionBuilder.cpp OutlineBuilder.cpp SupportDirector.cpp SupportData.cpp main.cpp
+	   DefinitionBuilder.cpp OutlineBuilder.cpp WorkflowDirector.cpp DemoData.cpp main.cpp
 OBJS = $(SRCS:.cpp=.o)
 TARGET = tividy_test
 CM_TARGET = cm_test
@@ -33,6 +33,8 @@ OBSERVER_SRCS = observer-test.cpp Observer.cpp generalObserver.cpp ParticipantOb
 				CreatedState.cpp AvailableState.cpp AssignedState.cpp InProgressState.cpp CompletedState.cpp \
 				RejectedState.cpp EscalatedState.cpp CancelledState.cpp WorkItemDecorator.cpp \
 				PriorityDecorator.cpp ValidationDecorator.cpp AuditingDecorator.cpp WorkItemMemento.cpp
+
+.PHONY: all run clean test_all test_cm test_vs test_chain test_builder test_composite test_workflow test_state test_adapter test_observer
 
 all: $(TARGET)
 
@@ -64,7 +66,7 @@ $(CHAIN_TARGET): $(CHAIN_OBJS)
 test_chain: $(CHAIN_TARGET)
 	./$(CHAIN_TARGET)
 
-# doctest tests for the Builder, Directors, Prototype and Industry 1 data
+# doctest tests for the Builder, the generic Director, Prototype and both industries' data
 $(BUILDER_TARGET): $(BUILDER_OBJS)
 	$(CXX) $(CXXFLAGS) -o $(BUILDER_TARGET) $(BUILDER_OBJS)
 
@@ -77,6 +79,27 @@ $(COMPOSITE_TARGET): $(COMPOSITE_OBJS)
 
 test_composite: $(COMPOSITE_TARGET)
 	./$(COMPOSITE_TARGET)
+
+# doctest tests for the engine: advance(), routing, the cancel rule, instance isolation
+WORKFLOW_TARGET = workflow_test
+WORKFLOW_OBJS = $(filter-out main.o,$(OBJS)) Observer.o test_workflow.o
+$(WORKFLOW_TARGET): $(WORKFLOW_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(WORKFLOW_TARGET) $(WORKFLOW_OBJS)
+
+test_workflow: $(WORKFLOW_TARGET)
+	./$(WORKFLOW_TARGET)
+
+# doctest tests for the work-item lifecycle (State) and the decorators
+STATE_TARGET = state_test
+STATE_OBJS = $(filter-out main.o,$(OBJS)) Observer.o test_state.o
+$(STATE_TARGET): $(STATE_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(STATE_TARGET) $(STATE_OBJS)
+
+test_state: $(STATE_TARGET)
+	./$(STATE_TARGET)
+
+# Runs every test program, one after another. Stops at the first failure.
+test_all: run test_cm test_vs test_chain test_builder test_composite test_workflow test_state test_observer test_adapter
 
 $(ADAPTER_TARGET): $(ADAPTER_SRCS)
 	$(CXX) $(CXXFLAGS) -o $@ $(ADAPTER_SRCS)
@@ -91,4 +114,4 @@ test_observer: $(OBSERVER_TARGET)
 	./$(OBSERVER_TARGET)
 
 clean: 
-	rm -f $(OBJS) $(TARGET) $(CM_TARGET) $(ADAPTER_TARGET) $(OBSERVER_TARGET) command_memento_test.o Observer.o $(VS_TARGET) visitor_strategy_test.o test_observer $(CHAIN_TARGET) chain_report_test.o $(BUILDER_TARGET) builder_prototype_test.o $(COMPOSITE_TARGET) composite_iterator_test.o
+	rm -f $(OBJS) $(TARGET) $(CM_TARGET) $(ADAPTER_TARGET) $(OBSERVER_TARGET) command_memento_test.o Observer.o $(VS_TARGET) visitor_strategy_test.o test_observer $(CHAIN_TARGET) chain_report_test.o $(BUILDER_TARGET) builder_prototype_test.o $(COMPOSITE_TARGET) composite_iterator_test.o $(WORKFLOW_TARGET) test_workflow.o $(STATE_TARGET) test_state.o
