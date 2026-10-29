@@ -46,6 +46,8 @@ participant, view your worklist, take actions, view reports and history.)_
 | Command | What it tests | Framework |
 |---|---|---|
 | `make test_chain` | Chain of Responsibility, WorkAllocator escalation, progress and escalation reports, report screens | doctest |
+| `make test_builder` | Builder, Directors, Prototype (clone and instance isolation), Industry 1 data | doctest |
+| `make test_composite` | Composite and Iterator | doctest |
 | `make run` | Composite, Iterator, State, Decorator, instance isolation | assert program |
 | `make test_cm` | Command, Memento, worker commands, undo/redo, history | assert program |
 | `make test_vs` | Visitor and Strategy | assert program |
@@ -67,7 +69,12 @@ Engineers, with a Support Manager as the last level.
 - Exception paths: a worker declines or does not respond, so the case moves up
   the escalation chain; a cancelled task ends the whole workflow.
 
-_(to do: how to run it in the TUI and sample data.)_
+The process is built by `SupportDirector` through the Builder, in four stages:
+Intake, Investigation, Resolution and Closure. Each task's priority matches its
+escalation level (1 General Assistant, 2 Technical Assistant, 3 Engineer, 4 Support Manager).
+Sample team and support cases: `src/SupportData.cpp`.
+
+_(to do: how to run it in the TUI.)_
 
 ### Industry 2
 _(to do once the team has chosen the industry.)_
@@ -76,7 +83,7 @@ _(to do once the team has chosen the industry.)_
 
 | Category | Pattern | Main classes |
 |---|---|---|
-| Creational | Builder | `WorkflowBuilder`, `WorkflowDirector` _(to do)_ |
+| Creational | Builder | `WorkflowBuilder`, `DefinitionBuilder`, `OutlineBuilder`, `WorkflowDirector`, `SupportDirector` |
 | Creational | Prototype | `WorkItem::clone()`, `WorkflowInstance` |
 | Structural | Composite | `WorkItem`, `Task`, `Stage` |
 | Structural | Decorator | `PriorityDecorator`, `ValidationDecorator`, `AuditingDecorator` |

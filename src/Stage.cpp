@@ -57,7 +57,7 @@ bool Stage::advanceParallel(const DataMap& data) {
     return allDone;
 }
 
-//Only the chosen child runs. The other children stay Created and are ignore
+//Only the chosen child runs. The other children stay Created and are ignored
 bool Stage::advanceChoice(const DataMap& data) {
     WorkItem* chosen = getChild(selector ? selector(data) : -1);
     if (chosen == nullptr) {

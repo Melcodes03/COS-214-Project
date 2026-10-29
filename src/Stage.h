@@ -13,6 +13,7 @@
  *  - sequential (default): children run one after another
  *  - parallel: all children become available together
  *  - choice: exactly one child runs, picked from the instance data
+ * Prototype: ConcretePrototype (clone() copies the stage and calls clone() on every child, so the whole subtree is copied).
  */
 class Stage : public WorkItem {
     public:
