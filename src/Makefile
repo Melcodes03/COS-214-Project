@@ -73,3 +73,16 @@ test_observer: $(OBSERVER_TARGET)
 
 clean: 
 	rm -f $(OBJS) $(TARGET) $(CM_TARGET) $(ADAPTER_TARGET) $(OBSERVER_TARGET) command_memento_test.o Observer.o $(VS_TARGET) visitor_strategy_test.o test_observer $(CHAIN_TARGET) chain_report_test.o
+
+# doctest unit tests for the workflow engine
+WF_TARGET = wf_test
+WF_OBJS = $(filter-out main.o,$(OBJS)) test_workflow.o
+
+$(WF_TARGET): $(WF_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(WF_TARGET) $(WF_OBJS)
+
+test_workflow: $(WF_TARGET)
+	./$(WF_TARGET)
+
+# runs every automated test suite
+test: test_workflow test_chain test_cm test_vs
