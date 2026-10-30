@@ -9,7 +9,8 @@ SRCS = WorkItem.cpp Task.cpp Stage.cpp DepthFirstIterator.cpp WorkflowDefinition
 	   WorkItemVisitor.cpp ProgressReportVisitor.cpp EscalationReportVisitor.cpp \
 	   Participant.cpp RoleBasedAssignment.cpp LeastWorkloadAssignment.cpp WorkAllocator.cpp \
 	   AssignmentHandler.cpp LevelHandler.cpp ManagerHandler.cpp ReportScreen.cpp \
-	   SingleApproval.cpp MultiLevelApproval.cpp ApprovalRequest.cpp main.cpp
+	   SingleApproval.cpp MultiLevelApproval.cpp ApprovalRequest.cpp \
+	   DefinitionBuilder.cpp OutlineBuilder.cpp SupportDirector.cpp SupportData.cpp main.cpp
 OBJS = $(SRCS:.cpp=.o)
 TARGET = tividy_test
 CM_TARGET = cm_test
@@ -18,6 +19,10 @@ VS_TARGET = vs_test
 VS_OBJS = $(filter-out main.o,$(OBJS)) visitor_strategy_test.o
 CHAIN_TARGET = chain_test
 CHAIN_OBJS = $(filter-out main.o,$(OBJS)) chain_report_test.o
+BUILDER_TARGET = builder_test
+BUILDER_OBJS = $(filter-out main.o,$(OBJS)) builder_prototype_test.o
+COMPOSITE_TARGET = composite_test
+COMPOSITE_OBJS = $(filter-out main.o,$(OBJS)) composite_iterator_test.o
 ADAPTER_TARGET = adapter_test
 ADAPTER_SRCS = adapter-test.cpp CommunicationAdapter.cpp EmailConnector.cpp MailService.cpp \
 			   SmsConnector.cpp SmsGateway.cpp
@@ -59,6 +64,20 @@ $(CHAIN_TARGET): $(CHAIN_OBJS)
 test_chain: $(CHAIN_TARGET)
 	./$(CHAIN_TARGET)
 
+# doctest tests for the Builder, Directors, Prototype and Industry 1 data
+$(BUILDER_TARGET): $(BUILDER_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(BUILDER_TARGET) $(BUILDER_OBJS)
+
+test_builder: $(BUILDER_TARGET)
+	./$(BUILDER_TARGET)
+
+# doctest tests for the Composite and the Iterator
+$(COMPOSITE_TARGET): $(COMPOSITE_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(COMPOSITE_TARGET) $(COMPOSITE_OBJS)
+
+test_composite: $(COMPOSITE_TARGET)
+	./$(COMPOSITE_TARGET)
+
 $(ADAPTER_TARGET): $(ADAPTER_SRCS)
 	$(CXX) $(CXXFLAGS) -o $@ $(ADAPTER_SRCS)
 
@@ -72,4 +91,4 @@ test_observer: $(OBSERVER_TARGET)
 	./$(OBSERVER_TARGET)
 
 clean: 
-	rm -f $(OBJS) $(TARGET) $(CM_TARGET) $(ADAPTER_TARGET) $(OBSERVER_TARGET) command_memento_test.o Observer.o $(VS_TARGET) visitor_strategy_test.o test_observer $(CHAIN_TARGET) chain_report_test.o
+	rm -f $(OBJS) $(TARGET) $(CM_TARGET) $(ADAPTER_TARGET) $(OBSERVER_TARGET) command_memento_test.o Observer.o $(VS_TARGET) visitor_strategy_test.o test_observer $(CHAIN_TARGET) chain_report_test.o $(BUILDER_TARGET) builder_prototype_test.o $(COMPOSITE_TARGET) composite_iterator_test.o

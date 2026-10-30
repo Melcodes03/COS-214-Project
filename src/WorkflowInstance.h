@@ -17,6 +17,7 @@ class WorkflowDefinition;
  * The engine moves a workflow forward with advance(). Call it after every action
  * a worker takes. It opens the next work, picks branches from the instance data,
  * fails the workflow when a task is cancelled, and completes it at the end.
+ * Prototype: Client. The constructor asks the definition's root for clone(), so each instance owns an independent copy of the whole work tree.
  */
 class WorkflowInstance {
     public:
@@ -36,6 +37,10 @@ class WorkflowInstance {
         ///Creates a RUNNING instance with its own copy of the definition's tree and no data.
         WorkflowInstance(const std::string& instanceId, const WorkflowDefinition* def);
         ~WorkflowInstance();
+
+        //owns its cloned tree, so copying is disabled
+        WorkflowInstance(const WorkflowInstance&) = delete;
+        WorkflowInstance& operator=(const WorkflowInstance&) = delete;
 
         std::string getId() const;
         const WorkflowDefinition* getDefinition() const;
