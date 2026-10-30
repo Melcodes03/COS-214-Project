@@ -120,3 +120,16 @@ report/     final PDF report
 
 ## 10. Third-party code
 - doctest 2.4.11, © Viktor Kirilov, MIT licence – `src/doctest.h`.
+
+## Running with Docker
+
+Docker builds and runs TIVIDY in a clean Linux container, so no local compiler is needed.
+Requires Docker Desktop (running).
+
+From the top level of the repository:
+
+| Step | Command |
+|---|---|
+| Build the image | `docker build -t tividy .` |
+| Run TIVIDY (interactive) | `docker run -it --rm tividy` |
+| Run all automated tests | `docker run --rm tividy make test` |
