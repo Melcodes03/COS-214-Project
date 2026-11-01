@@ -1,191 +1,212 @@
-# TIVIDY – Workflow Management System
+ <p align="center">
+  <img src="assets/wave-top.svg" width="100%" alt="TIVIDY teal waves"/>
+</p>
 
-COS 214 Final Project, University of Pretoria, 2026.
+<h1 align="center">TIVIDY</h1>
 
-TIVIDY is one generic workflow engine written in C++11. The engine knows about
-work items, stages, people, states and history, but nothing about any single
-business. Each industry gives it its own roles, rules, data and order of steps.
+<p align="center">
+  <strong>Workflow Management System</strong>
+  <br/>
+  COS 214 Final Project · University of Pretoria · 2026
+</p>
+
+<p align="center">
+  TIVIDY is a generic workflow engine written in C++11. It runs two industries, software customer support and university admissions. There is a web interface and a text interface, and both call the same C++ engine.
+</p>
 
 ---
 
-## 1. What you need
+## 1. Requirements
 
 | Tool | Version | Notes |
 |---|---|---|
-| g++ | 7 or newer (C++11) | Windows: MSYS2 / MinGW-w64 |
-| make | GNU Make | Windows: use `mingw32-make` instead of `make` |
-| valgrind | any | optional, Linux only, for memory checks |
+| g++ | 7 or newer, with C++11 | On Windows use MSYS2 / MinGW-w64 |
+| make | GNU Make | On Windows use `mingw32-make` |
+| A web browser | Any recent one | Only for the web interface |
+| valgrind | Any | Optional, Linux only, for memory checks |
+| Docker | Any | Optional, see "Running with Docker" at the end |
 
-The test framework, [doctest](https://github.com/doctest/doctest) v2.4.11
-(MIT licence), is included as `src/doctest.h`, so there is nothing else to install.
+Nothing else needs installing. The test framework (doctest 2.4.11) and the two libraries used by the web server (cpp-httplib 0.63.0 and nlohmann/json 3.12.0) are included in the repository.
 
 ## 2. Build
 
 ```bash
 cd src
-make clean     # do this after pulling: the Makefile does not track header changes
+make clean     # Run this after pulling; the Makefile does not track header changes
 make
 ```
 
-All code is built with `-std=c++11 -Wall -Wextra -pedantic`.
+Everything is compiled with `-std=c++11 -Wall -Wextra -pedantic`.
 
 ## 3. Run
 
-TIVIDY has two interfaces. Both drive the same C++ engine.
-
-**Web GUI (recommended for the demo)**
+### Web interface
 
 ```bash
 cd src
-make run_web          # then open http://localhost:8080 in a browser
+make run_web
 ```
 
-`./tividy_web --port 9000 --web ../web` changes the port. Pick a workflow and a sample
-case (or build your own for any organisation), then press Assign, Start, Complete,
-Approve / Reject, Decline, Escalate or Cancel on the tasks.
+Open [http://localhost:8080](http://localhost:8080) in a browser.
 
-- **Dashboard, Cases, My work, Alerts, History, Reports** cover every open case; the
-  **Case** page shows one case in detail.
-- **Workspace** (top bar) switches between organisations' areas, e.g. an airport's
-  Passenger Services; **View as** shows one person's work; **Simple / Advanced** hides or
-  shows charts and expert options.
-- It starts with the **default scenarios** (3 support cases, 3 admissions applications,
-  untouched). History → **Reset to defaults** returns to exactly that start.
-- **Run all tickets** (My work) opens e.g. 15 tickets, runs 8 at a time with the rest
-  waiting, and works them through the engine step by step (Pause, Resume, Finish instantly).
-- **Sign-offs** come from someone above the person who did the work; viewing as the
-  manager (e.g. Naledi Khumalo) gives her manager buttons under her own name.
-- Everything is saved to `src/tividy-log.jsonl` and restored on restart
-  (`./tividy_web --fresh` starts again from the defaults).
+To use another port:
 
-The REST API is in `docs/web-api.md`.
+```bash
+./tividy_web --port 9000 --web ../web
+```
 
-**Text interface (TUI)**
+The page starts with the default scenarios already open: 3 support cases and 3 admissions applications.
+
+Everything you do is saved to `src/tividy-log.jsonl` and restored when the server restarts.
+
+- `./tividy_web --fresh` starts again from the defaults.
+- **History → Reset to defaults** does the same from the page.
+
+### Text interface
 
 ```bash
 cd src
 make run_tui
 ```
 
-## 4. Tests
+### Console demo
 
-Run everything with `make test_all` (stops at the first failure).
+```bash
+cd src
+make run
+```
+
+## 4. Try Each Industry
+
+Start the web interface and pick a workflow. Press **Assign**, **Start** and **Complete** on each task as it opens. Only the buttons the engine allows are shown.
+
+**View as** (top bar) shows one person's work, and **Run all tickets** (under My work) runs a batch of tickets by itself.
+
+### Industry 1: Software Customer Support
+
+**Completion path**
+
+Open SC-1001 (the critical case) and work through Intake, Investigation, Resolution and Closure.
+
+"Verify fix" needs two sign-offs, so use **Approve** instead of **Complete**.
+
+Follow-up then opens "Write incident report" because the severity is critical.
+
+SC-1002 and SC-1003 are normal cases and get the satisfaction survey instead.
+
+**Exception path**
+
+- Assign a task and press **Decline**. It moves up one level of the escalation chain.
+- **Reject** on a sign-off sends the work back for rework (at most 3 times).
+- **Cancel** ends the whole case as Failed.
+- **Undo** brings it back.
+
+### Industry 2: University Admissions
+
+**Completion path**
+
+Open ADM-2001 (score 78). The two checks in Verification open at the same time.
+
+After the academic review, the score picks the branch.
+
+A score of 70 or more gives an offer, which the Registrar signs off, followed by enrolment.
+
+**Other branches**
+
+- ADM-2002 (score 62) goes to the waiting list.
+- ADM-2003 (score 48) gets a rejection notice.
+- You can also type a different score when you start the case.
+
+**Exception path**
+
+The same as support: decline, reject, escalate, cancel and undo.
+
+## 5. Run the Tests
+
+Run all tests from the `src` directory:
+
+```bash
+make test_all
+```
+
+This runs everything and stops at the first failure.
 
 | Command | What it tests | Framework |
 |---|---|---|
-| `make test_web` | The web service: actions, chain, last level, cancel, sign-offs, decisions, several cases, building a workflow | doctest |
-| `make test_workflow` | advance(): sequential, parallel and choice stages, the cancel rule, instance isolation | doctest |
-| `make test_state` | Work-item lifecycle (State) and the decorators | doctest |
-| `make test_tui` | The text interface, scripted | assert program |
-| `make test_chain` | Chain of Responsibility, WorkAllocator escalation, progress and escalation reports, report screens | doctest |
-| `make test_builder` | Builder, Directors, Prototype (clone and instance isolation), Industry 1 data | doctest |
+| `make test_web` | The web service: actions, escalation chain, cancel, sign-offs, decisions, several cases, building a workflow, defaults, batch runs | doctest |
+| `make test_workflow` | Sequential, parallel and choice stages, the cancel rule, instance isolation | doctest |
+| `make test_state` | The work item lifecycle (State) and the decorators | doctest |
+| `make test_chain` | Chain of Responsibility, escalation, progress and escalation reports | doctest |
+| `make test_builder` | Builder, the director, Prototype, the industry data | doctest |
 | `make test_composite` | Composite and Iterator | doctest |
+| `make test_tui` | The text interface, scripted | assert program |
 | `make run` | Composite, Iterator, State, Decorator, instance isolation | assert program |
-| `make test_cm` | Command, Memento, worker commands, undo/redo, history | assert program |
+| `make test_cm` | Command, Memento, undo, redo, history | assert program |
 | `make test_vs` | Visitor and Strategy | assert program |
 | `make test_observer` | Observer | assert program |
 | `make test_adapter` | Email and SMS adapters | assert program |
 
-Memory check (Linux): `valgrind --leak-check=full ./chain_test`
+### Memory Check
 
-Useful doctest options: `./chain_test --list-test-cases`, `./chain_test -tc="*declined*"`,
-`./chain_test -s` (show every check).
+On Linux:
 
-## 5. The two industries
-
-### Industry 1: Software customer support
-A software company's support desk. A customer's support case is logged,
-investigated and resolved by General Assistants, Technical Assistants and
-Engineers, with a Support Manager as the last level.
-- Completion path: the case is logged, investigated, fixed (the fix needs one
-  sign-off), closed and followed up.
-- Decision: Follow-up checks `severity`: a critical case gets an incident report,
-  any other case a satisfaction survey.
-- Exception paths: a worker declines or the fix is rejected, so the work moves up
-  the escalation chain (at most 3 reworks); a cancelled task ends the whole workflow.
-
-Five stages: Intake, Investigation, Resolution, Closure and Follow-up. Each task's
-priority matches its escalation level (1 General Assistant, 2 Technical Assistant,
-3 Engineer, 4 Support Manager).
-
-### Industry 2: University admissions
-A university admissions office. An application is registered, its documents and
-identity are checked at the same time, it is assessed and scored, and the score
-decides the outcome. Levels: Admissions Clerk, Verification Officer, Faculty
-Reviewer, Registrar.
-- Decision: score 70 or more gets an offer (needs two sign-offs), 55 or more the
-  waiting list, otherwise a rejection notice. Only an offer leads to enrolment.
-- Exception paths: as above (decline, rejection, escalation, cancel).
-
-Both industries are plain data in `src/DemoData.cpp` (a `WorkflowSpec` per
-industry). The one generic `WorkflowDirector` turns any spec into a workflow, so a
-new industry needs no new engine code; the web GUI's "Build your own workflow" form
-does exactly that at run time.
-
-## 6. Design patterns
-
-| Category | Pattern | Main classes |
-|---|---|---|
-| Creational | Builder | `WorkflowBuilder`, `DefinitionBuilder`, `OutlineBuilder`, `WorkflowDirector` (reads a `WorkflowSpec`) |
-| Creational | Prototype | `WorkItem::clone()`, `WorkflowInstance` |
-| Structural | Composite | `WorkItem`, `Task`, `Stage` |
-| Structural | Decorator | `PriorityDecorator`, `ValidationDecorator`, `AuditingDecorator` |
-| Structural | Adapter | `CommunicationAdapter`, `EmailConnector`, `SmsConnector` |
-| Structural | Facade | `TividyService` (the one class the web server talks to) |
-| Behavioural | Iterator | `WorkItemIterator`, `DepthFirstIterator` |
-| Behavioural | State | `WorkItemState` and its 8 states |
-| Behavioural | Command | `TransitionCommand`, `WorkerCommand`, `AllocationCommand`, `ApprovalCommand`, `ProgressCommand`, `CommandHistory` |
-| Behavioural | Memento | `WorkItemMemento` |
-| Behavioural | Observer | `Observer`, `ParticipantObserver`, `generalObserver` |
-| Behavioural | Strategy | `AssignmentStrategy`, `ApprovalStrategy`, `ApproverPolicy`, `ReviewAction`, `RunPolicy` and their subclasses |
-| Behavioural | Visitor | `WorkItemVisitor`, `ProgressReportVisitor`, `EscalationReportVisitor`, `StalledWorkVisitor` |
-| Behavioural | Chain of Responsibility | `AssignmentHandler`, `LevelHandler`, `ManagerHandler`, `ReviewHandler` (the Reviewer at the end) |
-| Behavioural | Mediator | `BatchRunner` ("Run all tickets") coordinating the cases through `CaseDesk` |
-
-Pattern mappings and justifications: `docs/patterns/`. UML exports and Visual
-Paradigm files: `docs/diagrams/`. Final report: `report/`.
-
-## 7. Folder layout
-
-```
-src/        engine, industries, tests, TUI, web server and Makefile
-src/third_party/  cpp-httplib and nlohmann/json (web server only)
-web/        the web GUI page (plain HTML/CSS/JS, calls the REST API)
-docs/       diagrams (exports + .vpp), pattern write-ups, submission notes
-report/     final PDF report
+```bash
+valgrind --leak-check=full ./chain_test
 ```
 
-## 8. How we work with Git
+### Useful Doctest Options
 
-- `main` is for releases, `dev` is where finished work is merged.
-- Each person works on a branch named `feature/<what>-<name>`, made from `dev`.
-- Work goes into `dev` only through a pull request, and one other member reviews it first.
-- Before opening a pull request: `make clean`, build with no warnings, and run all the tests.
+```bash
+./chain_test --list-test-cases
+./chain_test -tc="*declined*"
+./chain_test -s
+```
 
-## 9. Team
+The `-s` option shows every check.
 
-| Member | GitHub |
+## 6. Where to Find Things
+
+| Directory / File | Description |
 |---|---|
-| Lindelwe (Lee) Mabaleka | lee-codes012 |
-| Melaney (Mel) | Melcodes03 |
-| Rati | keratiineh |
-| Stephen | u25176502-commits |
-| Matshidiso (Tshidi) | u25227506-eng |
+| `src/` | The engine, both industries (`DemoData.cpp`), tests, text interface, web server and Makefile |
+| `web/` | The web page |
+| `docs/web-api.md` | The REST API |
+| `docs/diagrams/` | UML exports and Visual Paradigm files |
+| `docs/patterns/` | Pattern mappings and justifications |
+| `report/` | The final PDF report |
 
-## 10. Third-party code
-- doctest 2.4.11, © Viktor Kirilov, MIT licence – `src/doctest.h`.
-- cpp-httplib 0.63.0, © Yuji Hirose, MIT licence – `src/third_party/httplib.h` (web GUI server).
-- nlohmann/json 3.12.0, © Niels Lohmann, MIT licence – `src/third_party/json.hpp` (web GUI JSON).
+## 7. Team
+
+| Member | Student number | GitHub |
+|---|---|---|
+| Lindelwe (Lee) Mabaleka | u25019385 | [lee-codes012](https://github.com/lee-codes012) |
+| Melaney (Mel) Mutunhu | u25463382 | [Melcodes03](https://github.com/Melcodes03) |
+| Rati Molefe | u25324170 | [keratiineh](https://github.com/keratiineh) |
+| Stephen Odhiambo | u25176502 | [u25176502-commits](https://github.com/u25176502-commits) |
+| Matshidiso (Tshidi) Dibakoane | u25227506 | [u25227506-eng](https://github.com/u25227506-eng) |
+
+---
 
 ## Running with Docker
 
 Docker builds and runs TIVIDY in a clean Linux container, so no local compiler is needed.
-Requires Docker Desktop (running).
 
-From the top level of the repository:
+It requires Docker Desktop to be running.
+
+From the top folder of the repository:
 
 | Step | Command |
 |---|---|
 | Build the image | `docker build -t tividy .` |
-| Run TIVIDY (interactive) | `docker run -it --rm tividy` |
-| Run all automated tests | `docker run --rm tividy make test` |
+| Run the console demo | `docker run --rm tividy` |
+| Run all the automated tests | `docker run --rm tividy make test_all` |
+
+The image runs the console demo and the tests.
+
+To use the web or text interface, build and run it directly as described in Section 3.
+
+---
+
+<p align="center">
+  <img src="assets/wave-bottom.svg" width="100%" alt="TIVIDY teal waves"/>
+</p>

@@ -1,0 +1,30 @@
+
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 1200 220"
+     preserveAspectRatio="none">
+
+  <path fill="#D1F0EB">
+    <animate attributeName="d" dur="10s" repeatCount="indefinite"
+      values="
+      M0 130 Q300 40 600 120 Q900 200 1200 110 V220 H0 Z;
+      M0 100 Q300 180 600 100 Q900 20 1200 140 V220 H0 Z;
+      M0 130 Q300 40 600 120 Q900 200 1200 110 V220 H0 Z"/>
+  </path>
+
+  <path fill="#069E9D">
+    <animate attributeName="d" dur="8s" repeatCount="indefinite"
+      values="
+      M0 160 Q300 80 600 150 Q900 210 1200 145 V220 H0 Z;
+      M0 130 Q300 200 600 130 Q900 70 1200 165 V220 H0 Z;
+      M0 160 Q300 80 600 150 Q900 210 1200 145 V220 H0 Z"/>
+  </path>
+
+  <path fill="#057B7A">
+    <animate attributeName="d" dur="12s" repeatCount="indefinite"
+      values="
+      M0 190 Q300 120 600 180 Q900 220 1200 185 V220 H0 Z;
+      M0 160 Q300 220 600 160 Q900 120 1200 195 V220 H0 Z;
+      M0 190 Q300 120 600 180 Q900 220 1200 185 V220 H0 Z"/>
+  </path>
+
+</svg>
