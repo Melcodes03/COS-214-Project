@@ -11,8 +11,7 @@
 </p>
 
 <p align="center">
-  A generic C++11 workflow engine for software customer support
-  and university admissions.
+  TIVIDY is a generic workflow engine written in C++11. It runs two industries, software customer support and university admissions. There is a web interface and a text interface, and both call the same C++ engine.
 </p>
 
 ---
