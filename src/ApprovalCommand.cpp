@@ -19,7 +19,8 @@ bool ApprovalCommand::execute(){
         return false;   //already decided: the vote would be ignored, so nothing to record
     }
     delete before;
-    before = item->createMemento();   //the vote may complete or reject the item
+
+    before = item->createMemento();   //the vote may complete or reject the item so we need to 
     request->vote(approve);
     voted = true;
     return true;
@@ -29,7 +30,7 @@ void ApprovalCommand::undo(){
     if (!voted){
         return;
     }
-    item->restore(*before);       //notifies the item's observers if the state changes back
+    item->restore(*before);
     request->undoLastVote();
     voted = false;
 }

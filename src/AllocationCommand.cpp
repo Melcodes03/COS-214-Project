@@ -48,7 +48,7 @@ bool AllocationCommand::execute(){
 
     bool changed = result != nullptr || item->getStateName() != stateBefore || participantsChanged();
     if (!changed){
-        delete before;   //nothing happened, so there is nothing to undo
+        delete before;   //nothing happened, so nothing to undo
         before = nullptr;
         saved.clear();
         return false;
