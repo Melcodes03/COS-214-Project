@@ -49,8 +49,14 @@ Approve / Reject, Decline, Escalate or Cancel on the tasks.
 - **Workspace** (top bar) switches between organisations' areas, e.g. an airport's
   Passenger Services; **View as** shows one person's work; **Simple / Advanced** hides or
   shows charts and expert options.
+- It starts with the **default scenarios** (3 support cases, 3 admissions applications,
+  untouched). History → **Reset to defaults** returns to exactly that start.
+- **Run all tickets** (My work) opens e.g. 15 tickets, runs 8 at a time with the rest
+  waiting, and works them through the engine step by step (Pause, Resume, Finish instantly).
+- **Sign-offs** come from someone above the person who did the work; viewing as the
+  manager (e.g. Naledi Khumalo) gives her manager buttons under her own name.
 - Everything is saved to `src/tividy-log.jsonl` and restored on restart
-  (`./tividy_web --fresh` starts empty).
+  (`./tividy_web --fresh` starts again from the defaults).
 
 The REST API is in `docs/web-api.md`.
 
@@ -131,9 +137,10 @@ does exactly that at run time.
 | Behavioural | Command | `TransitionCommand`, `WorkerCommand`, `AllocationCommand`, `ApprovalCommand`, `ProgressCommand`, `CommandHistory` |
 | Behavioural | Memento | `WorkItemMemento` |
 | Behavioural | Observer | `Observer`, `ParticipantObserver`, `generalObserver` |
-| Behavioural | Strategy | `AssignmentStrategy`, `ApprovalStrategy` and their subclasses |
-| Behavioural | Visitor | `WorkItemVisitor`, `ProgressReportVisitor`, `EscalationReportVisitor` |
-| Behavioural | Chain of Responsibility | `AssignmentHandler`, `LevelHandler`, `ManagerHandler` |
+| Behavioural | Strategy | `AssignmentStrategy`, `ApprovalStrategy`, `ApproverPolicy`, `ReviewAction`, `RunPolicy` and their subclasses |
+| Behavioural | Visitor | `WorkItemVisitor`, `ProgressReportVisitor`, `EscalationReportVisitor`, `StalledWorkVisitor` |
+| Behavioural | Chain of Responsibility | `AssignmentHandler`, `LevelHandler`, `ManagerHandler`, `ReviewHandler` (the Reviewer at the end) |
+| Behavioural | Mediator | `BatchRunner` ("Run all tickets") coordinating the cases through `CaseDesk` |
 
 Pattern mappings and justifications: `docs/patterns/`. UML exports and Visual
 Paradigm files: `docs/diagrams/`. Final report: `report/`.

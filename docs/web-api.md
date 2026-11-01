@@ -30,7 +30,13 @@ through the same calls, so the engine rebuilds exactly the same state.
 | POST | `/api/action` | `allocate`, `start`, `complete`, `approve`, `reject`, `decline`, `escalate`, `cancel` on a task |
 | POST | `/api/case` | `{ "index": 0 }`: make that open case the current one |
 | GET | `/api/overview` | Every open case, every task, the staff, the workspaces and the activity log (dashboard, My work, alerts, history, reports) |
-| POST | `/api/reset` | Close every case and forget workflows built in the app ("Start fresh") |
+| POST | `/api/reset` | Close every case and forget workflows built in the app ("Clear everything") |
+| POST | `/api/defaults` | "Reset to defaults": clear, then open the 6 default cases again, untouched |
+| POST | `/api/review` | The Reviewer re-offers stalled or flagged work of the current case |
+| GET | `/api/report/stalled` | Stalled-work report (`StalledWorkVisitor`) for the current case |
+| POST | `/api/batch` | "Run all tickets": `{ "industryId": 1, "count": 15, "slots": 8, "policy": "happy" \| "declines" }` |
+| POST | `/api/batch/tick` | `{ "ticks": 1 }` one round (every running ticket takes one engine step); `0` = finish instantly |
+| POST | `/api/batch/stop` | Stop the run; the tickets stay open as they are |
 | POST | `/api/undo`, `/api/redo` | Undo or redo the last action |
 | POST | `/api/rollback` | Undo everything after a history marker |
 | GET | `/api/report/progress`, `/api/report/escalations` | Text from the Visitor reports |
@@ -183,6 +189,47 @@ also appears in `events` as `SMS to <manager>: ...` / `Email to <manager>: ...`.
 * `history.marker` is the number to send to `/api/rollback` to return to this point.
 * Before any industry is loaded, `/api/state` returns `{ "loaded": false, "industry": null }`.
 
+## Sign-offs: who may approve
+
+A task with `signoffs` is finished by **Approve**, given by an approver, never by the person
+who did the work. `ApproverPolicy` (Strategy) decides who may sign: by default
+`HigherLevelApprover`, a different person at a higher level (work done at the manager level
+may be signed by the manager). `SingleApproval` / `MultiLevelApproval` still count the votes.
+Each person signs a round once. `participantName` on `approve`/`reject` names the approver;
+without it (manager console) the manager signs first, then the next person allowed.
+
+Task fields: `signoffs: { needed, given, from: "Engineer or above" }`, `approvers` (who may sign
+now), `approvedBy` (who has signed), `underReview` (the Reviewer is holding it).
+
+Software Customer Support: "Verify fix" needs 2 sign-offs (Engineer and Support Manager).
+University Admissions: a Faculty Reviewer issues the offer; the Registrar signs it off.
+
+## The Reviewer (end of the chain)
+
+The chain is General Assistant -> Technical Assistant -> Engineer -> Support Manager -> **Reviewer**.
+The manager takes work when they have room; when even the manager is full, `ReviewHandler`
+applies its `ReviewAction` (Strategy, default `FlagForReview`): the work waits, flagged
+`underReview`. `POST /api/review` (and "Run all tickets", when a ticket is stuck for 3 ticks)
+re-offers flagged work, and work that has not changed for 6 steps, from the bottom of the chain.
+The manager is still the last level people can pass work to (`lastLevel`).
+
+## Default scenarios
+
+When the server starts with nothing open (no save file, or after `--fresh`), it opens the
+default scenarios: SC-1001..1003 and ADM-2001..2003, untouched. `POST /api/defaults` returns
+to exactly that start. `--no-defaults` starts empty.
+
+## Run all tickets
+
+`BatchRunner` (Mediator) opens `count` new cases, keeps `slots` of them running and the rest
+waiting, and on every tick gives each running case one step chosen by `RunPolicy` (Strategy:
+`HappyPathPolicy`, or `WithDeclinesPolicy`, which sends every other task back once). It only
+uses actions the engine allows, through the same calls as the buttons, so every step is a
+command in the case's history. The page drives time by calling `/api/batch/tick`; the reply
+and `/api/overview` carry `batch: { running, waiting, finished, ticks, steps, reviews,
+longestWait, done, summary: { completed, failed, reworks, escalations } }`, and each case in
+the overview has `batch: "running" | "waiting"` while the run goes.
+
 ## GET /api/overview
 
 ```json
@@ -202,7 +249,7 @@ also appears in `events` as `SMS to <manager>: ...` / `Email to <manager>: ...`.
 Activity kinds: `case-opened`, `workflow-created`, `assigned`, `started`, `completed`,
 `approval` (one sign-off of several), `approved`, `approval-pending`, `sentback`, `escalated`,
 `cancelled`, `ready` (work that just opened), `case-completed`, `case-failed`, `sms`, `email`,
-`undo`. Tasks that have not opened carry `waitingFor`, e.g. "the 'Intake' stage to finish".
+`undo`, `review`, `batch`, `batch-done`. Tasks that have not opened carry `waitingFor`, e.g. "the 'Intake' stage to finish".
 
 ## Reports
 
@@ -212,8 +259,10 @@ Activity kinds: `case-opened`, `workflow-created`, `assigned`, `started`, `compl
 
 | API | Engine |
 |---|---|
-| approve, reject | `ApprovalRequest` + `SingleApproval` / `MultiLevelApproval` (Strategy), `ApprovalCommand` (Command) |
 | decline + pass on | one undoable step: `WorkerCommand` then `AllocationCommand` (reassign up the chain) |
+| approve, reject | `ApproverPolicy` picks who may sign; `ApprovalRequest` + `SingleApproval` / `MultiLevelApproval` count (Strategy); `ApprovalCommand` inside `SignoffCommand` (Command) |
+| review | `ReviewHandler` (Chain of Responsibility) + `ReviewAction` (Strategy); `StalledWorkVisitor` (Visitor + Iterator) |
+| run all tickets | `BatchRunner` (Mediator) over `CaseDesk`; `RunPolicy` (Strategy); every step a Command |
 | create workflow | `readCustomIndustry` checks the spec, then the same path as load industry |
 | notifications | `ParticipantObserver` (Observer) sending through `EmailConnector` / `SmsConnector` (Adapter) |
 | load industry | `DemoData` spec, `WorkflowDirector` + `DefinitionBuilder` (Builder), `WorkflowInstance` (clone of the definition), `WorkAllocator` with a `LevelHandler` chain (Chain of Responsibility, Strategy) |
