@@ -61,6 +61,7 @@ int main(int argc, char** argv) {
     std::string webDir = "../web";
     std::string logFile = "tividy-log.jsonl";   //everything is saved here and replayed on start
     bool fresh = false;
+    bool defaults = true;
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--port" && i + 1 < argc) port = std::atoi(argv[++i]);
@@ -68,8 +69,9 @@ int main(int argc, char** argv) {
         else if (arg == "--log" && i + 1 < argc) logFile = argv[++i];
         else if (arg == "--no-save") logFile.clear();
         else if (arg == "--fresh") fresh = true;
+        else if (arg == "--no-defaults") defaults = false;
         else {
-            std::cerr << "Usage: tividy_web [--port N] [--web DIR] [--log FILE] [--fresh] [--no-save]\n";
+            std::cerr << "Usage: tividy_web [--port N] [--web DIR] [--log FILE] [--fresh] [--no-save] [--no-defaults]\n";
             return 1;
         }
     }
@@ -80,6 +82,8 @@ int main(int argc, char** argv) {
         int replayed = service.useLog(logFile);
         std::cout << "Saving to " << logFile << " (" << replayed << " earlier change(s) restored).\n";
     }
+    //like a main(): with nothing open, start with the default scenarios (3 support, 3 admissions)
+    if (defaults && Json::parse(service.state()).value("loaded", false) == false) service.loadDefaults();
     httplib::Server server;
 
     server.Get("/api/industries", [&](const httplib::Request&, httplib::Response& res) {
@@ -139,6 +143,26 @@ int main(int argc, char** argv) {
     server.Post("/api/reset", [&](const httplib::Request&, httplib::Response& res) {
         send(res, service.reset());
     });
+    server.Post("/api/defaults", [&](const httplib::Request&, httplib::Response& res) {
+        send(res, service.resetToDefaults());
+    });
+    server.Post("/api/review", [&](const httplib::Request&, httplib::Response& res) {
+        send(res, service.review());
+    });
+    server.Post("/api/batch", [&](const httplib::Request& req, httplib::Response& res) {
+        Json body;
+        if (!parseBody(req, res, body)) return;
+        send(res, service.startBatch(number(body, "industryId", 1), number(body, "count", 15), number(body, "slots", 8),
+                                     text(body, "policy")));
+    });
+    server.Post("/api/batch/tick", [&](const httplib::Request& req, httplib::Response& res) {
+        Json body;
+        if (!parseBody(req, res, body)) return;
+        send(res, service.tick(number(body, "ticks", 1)));
+    });
+    server.Post("/api/batch/stop", [&](const httplib::Request&, httplib::Response& res) {
+        send(res, service.stopBatch());
+    });
 
     server.Get("/api/overview", [&](const httplib::Request&, httplib::Response& res) {
         send(res, service.overview());
@@ -146,6 +170,9 @@ int main(int argc, char** argv) {
 
     server.Get("/api/report/progress", [&](const httplib::Request&, httplib::Response& res) {
         send(res, service.report("progress"));
+    });
+    server.Get("/api/report/stalled", [&](const httplib::Request&, httplib::Response& res) {
+        send(res, service.report("stalled"));
     });
     server.Get("/api/report/escalations", [&](const httplib::Request&, httplib::Response& res) {
         send(res, service.report("escalations"));

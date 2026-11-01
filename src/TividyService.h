@@ -8,6 +8,8 @@
 
 struct TividyCatalog;    ///< the available industries (data from DemoData)
 struct TividyScenario;   ///< one loaded industry: definition, instance, people, allocator, history
+class BatchRunner;       ///< "Run all tickets" (Mediator)
+class ServiceDesk;       ///< the cases as BatchRunner sees them
 
 /// Facade: the one object the web layer talks to.
 ///
@@ -73,6 +75,27 @@ class TividyService {
         /// POST /api/reset: closes every case, forgets workflows built in the app and empties the log.
         std::string reset();
 
+        /// Opens the default scenarios (3 support cases and 3 admissions applications, untouched)
+        /// if no case is open. Called at start-up, like a main().
+        std::string loadDefaults();
+
+        /// POST /api/defaults: "Reset to defaults" = reset() then loadDefaults().
+        std::string resetToDefaults();
+
+        /// POST /api/review: the Reviewer re-offers stalled or flagged work of the current case.
+        std::string review();
+
+        /// POST /api/batch: "Run all tickets". Opens @p count new cases of a workflow; at most
+        /// @p slots run at once, the rest wait. @p policy is "happy" or "declines".
+        std::string startBatch(int industryId, int count, int slots, const std::string& policy);
+
+        /// POST /api/batch/tick: @p ticks rounds (each running ticket takes one engine step);
+        /// 0 means "finish instantly".
+        std::string tick(int ticks);
+
+        /// POST /api/batch/stop: stops the run. The cases stay open as they are.
+        std::string stopBatch();
+
         /// POST /api/undo, /api/redo, /api/rollback
         std::string undo();
         std::string redo();
@@ -83,12 +106,15 @@ class TividyService {
         std::string report(const std::string& type);
 
     private:
+        friend class ServiceDesk;
         std::mutex lock;
         TividyCatalog* catalog;
         std::vector<TividyScenario*> open;   ///< every open case, oldest first (owned)
         std::string logPath;                 ///< "" = nothing is saved
         bool replaying = false;
         std::time_t replayTime = 0;          ///< while replaying: when the change was first made
+        BatchRunner* batch = nullptr;        ///< the current "Run all tickets", or nullptr
+        ServiceDesk* desk = nullptr;
         TividyScenario* scenario;            ///< the current case (one of open), or nullptr
 
         void openCase(TividyScenario* added);
@@ -98,6 +124,12 @@ class TividyService {
         std::string reply(bool ok, const std::string& message, const std::vector<std::string>& events);
         std::string snapshotJson();
         std::string actHere(const std::string& action, const std::string& taskId, const std::string& participantName);
+        std::string loadHere(int industryId, int caseIndex, const std::string& dataOverrides);
+        std::string resetHere();
+        std::string defaultsHere();
+        int reviewHere(TividyScenario& s);
+        std::string batchJson() const;
+        TividyScenario* findCase(const std::string& id) const;
         void record(const std::string& kind, const std::string& text, const std::string& who);
         std::time_t now() const;
         std::string logged(const std::string& reply, const std::string& entry);

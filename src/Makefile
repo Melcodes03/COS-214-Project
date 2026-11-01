@@ -11,7 +11,8 @@ SRCS = WorkItem.cpp Task.cpp Stage.cpp DepthFirstIterator.cpp WorkflowDefinition
 	   AssignmentHandler.cpp LevelHandler.cpp ManagerHandler.cpp ReportScreen.cpp \
 	   SingleApproval.cpp MultiLevelApproval.cpp ApprovalRequest.cpp \
 	   DefinitionBuilder.cpp OutlineBuilder.cpp WorkflowDirector.cpp DemoData.cpp \
-	   ProgressCommand.cpp main.cpp
+	   ProgressCommand.cpp ApproverPolicy.cpp ReviewAction.cpp ReviewHandler.cpp StalledWorkVisitor.cpp \
+	   RunPolicy.cpp BatchRunner.cpp main.cpp
 OBJS = $(SRCS:.cpp=.o)
 TARGET = tividy_test
 CM_TARGET = cm_test

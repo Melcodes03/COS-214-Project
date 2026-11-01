@@ -15,6 +15,8 @@
 #include "AllocationCommand.h"
 #include "ApprovalCommand.h"
 #include "ApprovalRequest.h"
+#include "ApproverPolicy.h"
+#include "BatchRunner.h"
 #include "AssignmentHandler.h"
 #include "CommandHistory.h"
 #include "DefinitionBuilder.h"
@@ -28,8 +30,11 @@
 #include "ParticipantObserver.h"
 #include "ProgressCommand.h"
 #include "ReportScreen.h"
+#include "ReviewAction.h"
+#include "ReviewHandler.h"
 #include "SingleApproval.h"
 #include "SmsConnector.h"
+#include "StalledWorkVisitor.h"
 #include "TransitionCommand.h"
 #include "WorkAllocator.h"
 #include "WorkItem.h"
@@ -77,6 +82,9 @@ struct Industry {
     std::string organisation;         ///< Organisation -> Workspace -> Workflow -> Case
     std::string workspace;
 };
+
+/// A task that has not changed state for this many steps of its case counts as stalled.
+const int kStalledAfter = 6;
 
 /// One line of the activity log kept across every case (dashboard, alerts, history).
 struct Activity {
@@ -236,6 +244,10 @@ struct TividyScenario {
     std::vector<Notification> notifications;
     int number = 0;                                      ///< 1 for the first case opened, 2 for the next...
     std::time_t opened = 0;
+    ReviewHandler* reviewer = nullptr;                   ///< the end of the escalation chain (owned by the chain)
+    int step = 0;                                        ///< actions taken on this case so far
+    std::map<std::string, int> changedAt;                ///< task id -> step at which its state last changed
+    std::map<const ApprovalRequest*, std::vector<std::string> > voters;   ///< who signed off each request
     std::map<std::string, ApprovalRequest*> approvals;   ///< task id -> its current approval (Strategy context)
     std::vector<ApprovalRequest*> allRequests;           ///< every request made, owned (old ones stay for undo)
 
@@ -293,7 +305,9 @@ Participant* holderOf(TividyScenario& s, WorkItem& item) {
 bool atLastLevel(TividyScenario& s, WorkItem& item) {
     if (holderOf(s, item) == nullptr) return false;
     AssignmentHandler* level = s.allocator->getLevel(item.getId());
-    return level != nullptr && level->getNext() == nullptr;
+    if (level == nullptr) return false;
+    //the manager level is the last level people can pass work up to; only the Reviewer follows it
+    return level->getNext() == nullptr || dynamic_cast<ManagerHandler*>(level) != nullptr;
 }
 
 /// A task that has not opened yet (still Created) cannot be cancelled: nothing has happened
@@ -352,6 +366,15 @@ void collectNotifications(TividyScenario& s, std::vector<std::string>& events) {
     }
 }
 
+/// Counts a step on the case and notes which tasks changed state in it (for "stalled work").
+void markChanges(TividyScenario& s, const std::vector<std::string>& events) {
+    ++s.step;
+    for (size_t i = 0; i < events.size(); ++i) {
+        size_t space = events[i].find(' ');
+        if (space != std::string::npos) s.changedAt[events[i].substr(0, space)] = s.step;
+    }
+}
+
 // ---- approvals: Strategy ------------------------------------------------------------------
 
 /// The spec entry for a task id such as "S3-T2", or nullptr.
@@ -383,6 +406,56 @@ int signoffsGiven(const TividyScenario& s, const WorkItem& item) {
     std::map<std::string, ApprovalRequest*>::const_iterator f = s.approvals.find(item.getId());
     if (f == s.approvals.end() || f->second == nullptr || f->second->getDecision() != ApprovalStrategy::PENDING) return 0;
     return f->second->voteCount();
+}
+
+/// The rule for who may sign off (Strategy). Swap the class here to change it everywhere,
+/// e.g. HolderMayApprove for self-approval.
+const ApproverPolicy& approverPolicy() {
+    static HigherLevelApprover policy;
+    return policy;
+}
+
+/// A person's level: their role's position in the escalation chain, 1 = lowest.
+int levelOf(const TividyScenario& s, const Participant& p) {
+    const std::vector<std::string>& roles = s.industry->roles;
+    for (size_t i = 0; i < roles.size(); ++i) {
+        if (roles[i] == p.getRole()) return (int)i + 1;
+    }
+    return 0;
+}
+
+/// Who has signed off the task's current approval so far.
+std::vector<std::string> votersFor(const TividyScenario& s, const WorkItem& item) {
+    std::map<std::string, ApprovalRequest*>::const_iterator f = s.approvals.find(item.getId());
+    if (f == s.approvals.end() || f->second == nullptr) return std::vector<std::string>();
+    std::map<const ApprovalRequest*, std::vector<std::string> >::const_iterator v = s.voters.find(f->second);
+    return v == s.voters.end() ? std::vector<std::string>() : v->second;
+}
+
+/// The people who may sign off @p item right now: allowed by the ApproverPolicy, and not
+/// already signed off on this round. Empty unless the work is in progress and needs sign-offs.
+std::vector<Participant*> approversFor(TividyScenario& s, WorkItem& item) {
+    std::vector<Participant*> out;
+    Participant* holder = holderOf(s, item);
+    if (holder == nullptr || item.getStateName() != "InProgress" || signoffsFor(s, item) == 0) return out;
+    std::vector<std::string> done = signoffsGiven(s, item) > 0 ? votersFor(s, item) : std::vector<std::string>();
+    int top = (int)s.industry->roles.size();
+    for (size_t i = 0; i < s.people.size(); ++i) {
+        Participant* p = s.people[i];
+        if (std::find(done.begin(), done.end(), p->getName()) != done.end()) continue;
+        if (approverPolicy().mayApprove(levelOf(s, *p), levelOf(s, *holder), p == holder, top)) out.push_back(p);
+    }
+    return out;
+}
+
+/// "Engineer or above": the lowest level that may sign off the holder's work.
+std::string approverRule(TividyScenario& s, WorkItem& item) {
+    Participant* holder = holderOf(s, item);
+    const std::vector<std::string>& roles = s.industry->roles;
+    if (holder == nullptr || roles.empty()) return approverPolicy().describe();
+    int level = levelOf(s, *holder);
+    if (level >= (int)roles.size()) return roles.back();
+    return roles[level] + (level + 1 < (int)roles.size() ? " or above" : "");
 }
 
 // ---- small commands used by the web layer -------------------------------------------------
@@ -451,8 +524,8 @@ class PassOnCommand : public Command {
 /// fresh approval.
 class SignoffCommand : public Command {
     public:
-        SignoffCommand(TividyScenario& s, WorkItem& item, Participant* holder, bool approve)
-            : s(s), item(item), holder(holder), approve(approve), vote(nullptr),
+        SignoffCommand(TividyScenario& s, WorkItem& item, Participant* holder, const std::string& approver, bool approve)
+            : s(s), item(item), holder(holder), approver(approver), approve(approve), vote(nullptr),
               previous(nullptr), created(false), released(false), listIndex(-1) {}
         ~SignoffCommand() override { delete vote; }
         SignoffCommand(const SignoffCommand&) = delete;
@@ -469,6 +542,7 @@ class SignoffCommand : public Command {
             delete vote;
             vote = new ApprovalCommand(current, &item, approve, getName());
             if (!vote->execute()) { if (created) current = previous; return false; }
+            s.voters[current].push_back(approver);   //who signed off (or turned it down)
             released = false;
             if (item.getStateName() != "InProgress" && holder != nullptr) {   //decided: the work leaves the holder
                 std::vector<WorkItem*>& list = holder->getWorklist();
@@ -488,16 +562,19 @@ class SignoffCommand : public Command {
                 released = false;
             }
             vote->undo();
+            std::vector<std::string>& who = s.voters[s.approvals[item.getId()]];
+            if (!who.empty()) who.pop_back();
             if (created) {
                 if (previous != nullptr) s.approvals[item.getId()] = previous;
                 else s.approvals.erase(item.getId());
             }
         }
-        std::string getName() const override { return (approve ? "Approve: " : "Reject: ") + item.getName(); }
+        std::string getName() const override { return (approve ? "Approve: " : "Reject: ") + item.getName() + " (" + approver + ")"; }
     private:
         TividyScenario& s;
         WorkItem& item;
         Participant* holder;
+        std::string approver;
         bool approve;
         ApprovalCommand* vote;
         ApprovalRequest* previous;
@@ -706,8 +783,15 @@ Json itemJson(TividyScenario& s, WorkItem& item, bool stageCompleted) {
         Json a;
         a["needed"] = needed;
         a["given"] = signoffsGiven(s, item);
+        a["from"] = approverRule(s, item);
         j["signoffs"] = a;
+        Json names = Json::array();
+        std::vector<Participant*> allowed = approversFor(s, item);
+        for (size_t i = 0; i < allowed.size(); ++i) names.push_back(allowed[i]->getName());
+        j["approvers"] = names;
+        j["approvedBy"] = votersFor(s, item);
     }
+    j["underReview"] = s.reviewer != nullptr && s.reviewer->isFlagged(item.getId()) && holderOf(s, item) == nullptr;
     const TaskSpec* spec = taskSpecFor(s, item.getId());
     if (spec != nullptr && !spec->whenKey.empty()) j["when"] = spec->whenKey + " " + spec->whenOp + " " + spec->whenValue;
     //a finished stage never opens the branches of a choice it did not take
@@ -863,9 +947,15 @@ bool doDecline(TividyScenario& s, WorkItem& item, const std::string& who, std::s
 }
 
 /// One sign-off. A rejection sends the work back and passes it up the chain, like Decline.
+/// A sign-off is given by an APPROVER, not by the holder: someone the ApproverPolicy allows
+/// (by default a higher level). With no name (the manager console) the manager signs, or the
+/// first other person allowed. Each person signs a round only once.
 bool doSignoff(TividyScenario& s, WorkItem& item, const std::string& who, std::string& error, bool approve) {
     Participant* holder = holderOf(s, item);
-    if (!checkWho(holder, who, error)) return false;
+    if (holder == nullptr) {
+        error = "Nobody holds " + item.getId() + " yet. Assign it first.";
+        return false;
+    }
     if (signoffsFor(s, item) == 0) {
         error = item.getId() + " does not need a sign-off. Use Complete.";
         return false;
@@ -874,7 +964,33 @@ bool doSignoff(TividyScenario& s, WorkItem& item, const std::string& who, std::s
         error = item.getId() + " can only be signed off once it has been started.";
         return false;
     }
-    SignoffCommand* vote = new SignoffCommand(s, item, holder, approve);
+    std::vector<Participant*> allowed = approversFor(s, item);
+    Participant* approver = nullptr;
+    if (who.empty()) {
+        for (size_t i = 0; i < allowed.size() && approver == nullptr; ++i) {
+            if (levelOf(s, *allowed[i]) == (int)s.industry->roles.size()) approver = allowed[i];   //the manager first
+        }
+        if (approver == nullptr && !allowed.empty()) approver = allowed[0];
+        if (approver == nullptr) {
+            error = "Nobody else can sign off " + item.getId() + " now.";
+            return false;
+        }
+    } else {
+        approver = findPerson(s, who);
+        if (approver == nullptr) {
+            error = "Unknown participant '" + who + "'.";
+            return false;
+        }
+        if (std::find(allowed.begin(), allowed.end(), approver) == allowed.end()) {
+            std::vector<std::string> done = votersFor(s, item);
+            error = std::find(done.begin(), done.end(), who) != done.end() && signoffsGiven(s, item) > 0
+                ? who + " has already signed off " + item.getId() + "; it needs someone else."
+                : who + " cannot sign off " + item.getId() + ": it needs a sign-off from " + approverRule(s, item) +
+                  (approver == holder ? ", not from the person who did the work." : ".");
+            return false;
+        }
+    }
+    SignoffCommand* vote = new SignoffCommand(s, item, holder, approver->getName(), approve);
     if (approve) return run(s, vote);
     StepsCommand* steps = new StepsCommand(vote->getName(), vote);
     steps->then(new PassOnCommand(s, item));
@@ -923,7 +1039,10 @@ const ActionEntry kTable[] = {
 
 /// One level per role, lowest first. The last role is the manager level, which takes
 /// whatever nobody below can (ManagerHandler).
-AssignmentHandler* buildChain(const std::vector<std::string>& roles, const std::vector<Participant*>& people) {
+/// ... and after the manager, the Reviewer: it catches work that even the manager has no room for,
+/// so nothing falls off the end of the chain unseen.
+AssignmentHandler* buildChain(const std::vector<std::string>& roles, const std::vector<Participant*>& people,
+                              ReviewHandler*& reviewer) {
     AssignmentHandler* first = nullptr;
     AssignmentHandler* last = nullptr;
     for (size_t i = 0; i < roles.size(); ++i) {
@@ -940,6 +1059,9 @@ AssignmentHandler* buildChain(const std::vector<std::string>& roles, const std::
         if (last == nullptr) first = level; else last->setNext(level);
         last = level;
     }
+    reviewer = new ReviewHandler(new FlagForReview());
+    if (last != nullptr) last->setNext(reviewer);
+    else first = reviewer;
     return first;
 }
 
@@ -963,7 +1085,7 @@ TividyScenario* buildScenario(const Industry& industry, const std::string& caseI
     }
     s->allocator = new WorkAllocator(new LeastWorkloadAssignment());
     for (size_t i = 0; i < s->people.size(); ++i) s->allocator->addParticipant(s->people[i]);
-    s->allocator->setChain(buildChain(industry.roles, s->people));
+    s->allocator->setChain(buildChain(industry.roles, s->people, s->reviewer));
 
     s->history = new CommandHistory();
     s->email = new EmailConnector();
@@ -981,7 +1103,11 @@ TividyScenario* buildScenario(const Industry& industry, const std::string& caseI
 
 TividyService::TividyService() : catalog(new TividyCatalog()), scenario(nullptr) {}
 
+void destroyDesk(ServiceDesk* desk);   //defined after ServiceDesk, below
+
 TividyService::~TividyService() {
+    delete batch;
+    destroyDesk(desk);
     for (size_t i = 0; i < open.size(); ++i) delete open[i];
     delete catalog;
 }
@@ -1046,6 +1172,11 @@ int TividyService::useLog(const std::string& path) {
         else if (op == "redo") redo();
         else if (op == "rollback") rollback(e.value("marker", 0));
         else if (op == "case") switchCase(e.value("index", -1));
+        else if (op == "defaults") { std::lock_guard<std::mutex> guard(lock); defaultsHere(); }
+        else if (op == "review") review();
+        else if (op == "batch") startBatch(e.value("industryId", 0), e.value("count", 0), e.value("slots", 0), e.value("policy", ""));
+        else if (op == "tick") tick(e.value("ticks", 1));
+        else if (op == "stop") stopBatch();
         else continue;
         ++replayed;
     }
@@ -1057,6 +1188,12 @@ int TividyService::useLog(const std::string& path) {
 
 std::string TividyService::reset() {
     std::lock_guard<std::mutex> guard(lock);
+    return resetHere();
+}
+
+std::string TividyService::resetHere() {
+    delete batch;
+    batch = nullptr;
     for (size_t i = 0; i < open.size(); ++i) delete open[i];
     open.clear();
     scenario = nullptr;
@@ -1170,6 +1307,11 @@ std::string TividyService::industries() {
 
 std::string TividyService::loadIndustry(int industryId, int caseIndex, const std::string& dataOverrides) {
     std::lock_guard<std::mutex> guard(lock);
+    return logged(loadHere(industryId, caseIndex, dataOverrides),
+                  Json({{"op", "industry"}, {"industryId", industryId}, {"caseIndex", caseIndex}, {"data", dataOverrides}}).dump());
+}
+
+std::string TividyService::loadHere(int industryId, int caseIndex, const std::string& dataOverrides) {
     const Industry* industry = catalog->find(industryId);
     if (industry == nullptr) {
         return reply(false, "Unknown industry id " + std::to_string(industryId) + ".", std::vector<std::string>());
@@ -1191,8 +1333,7 @@ std::string TividyService::loadIndustry(int industryId, int caseIndex, const std
     openCase(buildScenario(*industry, uniqueCaseId(chosen.caseId), data));
     std::vector<std::string> events;
     events.push_back("Started case " + scenario->instance->getId() + " on " + industry->name + ".");
-    return logged(reply(true, "Started case " + scenario->instance->getId() + " on " + industry->name + ".", events),
-                  Json({{"op", "industry"}, {"industryId", industryId}, {"caseIndex", caseIndex}, {"data", dataOverrides}}).dump());
+    return reply(true, "Started case " + scenario->instance->getId() + " on " + industry->name + ".", events);
 }
 
 namespace {
@@ -1518,15 +1659,22 @@ std::string TividyService::actHere(const std::string& action, const std::string&
 
     Participant* now = holderOf(*scenario, *item);
     std::string message = "Task " + taskId + " " + entry->verb;
+    std::string approver;   //who signed off (approve / reject); the holder is someone else
+    if (action == "approve" || action == "reject") {
+        std::vector<std::string> v = votersFor(*scenario, *item);
+        approver = v.empty() ? std::string() : v.back();
+    }
     if (action == "decline" || action == "reject") {
-        message += " by " + wasName;
+        message += " by " + (action == "reject" ? approver : wasName);
         if (now != nullptr && item->getStateName() == "Assigned") message += " and passed on to " + now->getName() + ".";
         else if (item->getRetryCount() >= item->getMaxRetries()) message += ". No reworks are left, so it can only be cancelled.";
         else message += ". Nobody is free to take it right now, so it waits.";
     } else if (action == "approve" && item->getStateName() == "InProgress") {
         int needed = signoffsFor(*scenario, *item), given = signoffsGiven(*scenario, *item);
         message = "Sign-off " + std::to_string(given) + " of " + std::to_string(needed) + " given on " + taskId +
-                  ". " + std::to_string(needed - given) + " more needed.";
+                  " by " + approver + ". " + std::to_string(needed - given) + " more needed.";
+    } else if (action == "approve") {
+        message += " by " + approver + " (the work was done by " + wasName + ").";
     } else if (action == "allocate" || action == "escalate") {
         Participant* assigned = scenario->allocator->getAssignee(taskId);
         if (item->getStateName() == "Assigned" && assigned != nullptr) {
@@ -1540,6 +1688,7 @@ std::string TividyService::actHere(const std::string& action, const std::string&
         message += ".";
     }
     std::vector<std::string> events = eventsSince(*scenario, before);
+    markChanges(*scenario, events);
     size_t first = events.size();
     collectNotifications(*scenario, events);
 
@@ -1551,7 +1700,7 @@ std::string TividyService::actHere(const std::string& action, const std::string&
     std::string kind = kinds.at(action);
     if (action == "approve" && item->getStateName() == "InProgress") kind = "approval";
     Participant* actor = action == "allocate" || action == "escalate" ? holderOf(*scenario, *item) : nullptr;
-    record(kind, message, actor != nullptr ? actor->getName() : wasName);
+    record(kind, message, actor != nullptr ? actor->getName() : !approver.empty() ? approver : wasName);
     for (size_t i = 0; i < first; ++i) {
         std::string id, name, to;
         if (events[i].compare(0, 9, "Workflow ") == 0) {
@@ -1586,6 +1735,7 @@ std::string TividyService::undo() {
     Before before = capture(*scenario);
     if (!scenario->history->undo()) return reply(false, "Nothing to undo.", none);
     std::vector<std::string> events = eventsSince(*scenario, before);
+    markChanges(*scenario, events);
     collectNotifications(*scenario, events);
     record("undo", "Undid: " + last + ".", "");
     return logged(reply(true, "Undid last action: " + last, events), "{\"op\":\"undo\"}");
@@ -1598,6 +1748,7 @@ std::string TividyService::redo() {
     Before before = capture(*scenario);
     if (!scenario->history->redo()) return reply(false, "Nothing to redo (or the redo is no longer possible).", none);
     std::vector<std::string> events = eventsSince(*scenario, before);
+    markChanges(*scenario, events);
     collectNotifications(*scenario, events);
     record("undo", "Redid: " + scenario->history->lastCommandName() + ".", "");
     return logged(reply(true, "Redid: " + scenario->history->lastCommandName(), events), "{\"op\":\"redo\"}");
@@ -1615,6 +1766,7 @@ std::string TividyService::rollback(int marker) {
     int undone = scenario->history->rollbackTo(marker);
     record("undo", "Rolled back " + std::to_string(undone) + " action(s) to checkpoint " + std::to_string(marker) + ".", "");
     std::vector<std::string> events = eventsSince(*scenario, before);
+    markChanges(*scenario, events);
     collectNotifications(*scenario, events);
     return logged(reply(true, "Rolled back " + std::to_string(undone) + " action(s) to marker " +
                        std::to_string(marker) + ".", events), Json({{"op", "rollback"}, {"marker", marker}}).dump());
@@ -1738,7 +1890,244 @@ std::string TividyService::overview() {
     }
     j["activity"] = feed;
     j["currentCase"] = scenario != nullptr ? Json(scenario->instance->getId()) : Json(nullptr);
+    j["batch"] = Json::parse(batchJson());
+    if (batch != nullptr) {
+        std::set<std::string> run(batch->getRunning().begin(), batch->getRunning().end());
+        std::set<std::string> wait(batch->getWaiting().begin(), batch->getWaiting().end());
+        for (size_t c = 0; c < j["cases"].size(); ++c) {
+            std::string id = j["cases"][c]["id"];
+            if (run.count(id)) j["cases"][c]["batch"] = "running";
+            else if (wait.count(id)) j["cases"][c]["batch"] = "waiting";
+        }
+    }
     return j.dump();
+}
+
+// ---- the Reviewer, default scenarios and "Run all tickets" ---------------------------------
+
+/// The Reviewer's sweep: work that waits with nobody holding it, and has either been flagged by
+/// the Reviewer (the chain was full) or not moved for kStalledAfter steps, is offered to the
+/// escalation chain again from the bottom. Each re-offer is a normal, undoable allocation.
+int TividyService::reviewHere(TividyScenario& s) {
+    StalledWorkVisitor stalled(s.changedAt, s.step, kStalledAfter);
+    stalled.visitAll(*s.instance->getRoot());
+    std::set<std::string> look;
+    for (size_t i = 0; i < stalled.getStalled().size(); ++i) look.insert(stalled.getStalled()[i].id);
+    WorkItemIterator* it = s.instance->getRoot()->createIterator();
+    std::vector<WorkItem*> todo;
+    for (it->first(); !it->isDone(); it->next()) {
+        WorkItem* t = it->currentItem();
+        if (t->getChildCount() > 0 || holderOf(s, *t) != nullptr) continue;
+        if (look.count(t->getId()) || (s.reviewer != nullptr && s.reviewer->isFlagged(t->getId()))) todo.push_back(t);
+    }
+    delete it;
+    TividyScenario* current = scenario;
+    scenario = &s;
+    int moved = 0;
+    for (size_t i = 0; i < todo.size(); ++i) {
+        std::vector<std::string> va = validActionsFor(s, *todo[i]);
+        if (std::find(va.begin(), va.end(), "allocate") == va.end()) continue;
+        Before before = capture(s);
+        std::string error;
+        if (doAllocate(s, *todo[i], "", error)) {
+            ++moved;
+            std::vector<std::string> events = eventsSince(s, before);
+            markChanges(s, events);
+            if (s.reviewer != nullptr) s.reviewer->clearFlag(todo[i]->getId());
+            Participant* now = holderOf(s, *todo[i]);
+            record("review", "Reviewer re-offered '" + todo[i]->getName() + "' (" + todo[i]->getId() + ")" +
+                   (now != nullptr ? " to " + now->getName() + "." : "."), now != nullptr ? now->getName() : "");
+        }
+    }
+    scenario = current;
+    return moved;
+}
+
+std::string TividyService::review() {
+    std::lock_guard<std::mutex> guard(lock);
+    std::vector<std::string> none;
+    if (scenario == nullptr) return reply(false, "No case is open.", none);
+    int moved = reviewHere(*scenario);
+    return logged(reply(true, moved == 0 ? "The Reviewer found nothing to re-offer on " + scenario->instance->getId() + "."
+                                         : "The Reviewer re-offered " + std::to_string(moved) + " task(s) on " + scenario->instance->getId() + ".", none),
+                  "{\"op\":\"review\"}");
+}
+
+TividyScenario* TividyService::findCase(const std::string& id) const {
+    for (size_t i = 0; i < open.size(); ++i) {
+        if (open[i]->instance->getId() == id) return open[i];
+    }
+    return nullptr;
+}
+
+/// The default scenarios: three support cases and three admissions applications, untouched.
+std::string TividyService::defaultsHere() {
+    std::vector<std::string> none;
+    if (!open.empty()) return reply(false, "Cases are already open; use Reset to defaults.", none);
+    for (int industry = 1; industry <= 2; ++industry) {
+        const Industry* in = catalog->find(industry);
+        for (size_t k = 0; in != nullptr && k < in->cases.size() && k < 3; ++k) loadHere(industry, (int)k, "");
+    }
+    if (!open.empty()) scenario = open[0];
+    return reply(true, "Loaded the default scenarios: " + std::to_string(open.size()) + " untouched cases.", none);
+}
+
+std::string TividyService::loadDefaults() {
+    std::lock_guard<std::mutex> guard(lock);
+    return logged(defaultsHere(), "{\"op\":\"defaults\"}");
+}
+
+std::string TividyService::resetToDefaults() {
+    std::lock_guard<std::mutex> guard(lock);
+    resetHere();
+    std::string r = logged(defaultsHere(), "{\"op\":\"defaults\"}");
+    Json j = Json::parse(r);
+    j["message"] = "Back to the default scenarios: " + std::to_string(open.size()) + " untouched cases.";
+    return j.dump();
+}
+
+/// Mediator pattern: the cases as the BatchRunner (ConcreteMediator) sees them. Every step goes
+/// through the same actHere() as a button press, so it is a real Command in the case's history.
+class ServiceDesk : public CaseDesk {
+    public:
+        ServiceDesk(TividyService& service, int industryId) : service(service), industryId(industryId), opened(0) {}
+        std::string openTicket() override {
+            const Industry* in = service.catalog->find(industryId);
+            const CaseTemplate& c = in->cases[opened++ % in->cases.size()];
+            TividyScenario* current = service.scenario;
+            service.openCase(buildScenario(*in, service.uniqueCaseId(c.caseId), c.data));
+            std::string id = service.scenario->instance->getId();
+            service.scenario = current != nullptr ? current : service.scenario;
+            return id;
+        }
+        std::vector<StepOption> options(const std::string& caseId) override {
+            std::vector<StepOption> out;
+            TividyScenario* s = service.findCase(caseId);
+            if (s == nullptr) return out;
+            WorkItemIterator* it = s->instance->getRoot()->createIterator();
+            for (it->first(); !it->isDone(); it->next()) {
+                WorkItem* t = it->currentItem();
+                if (t->getChildCount() > 0) continue;
+                std::vector<std::string> va = validActionsFor(*s, *t);
+                for (size_t k = 0; k < va.size(); ++k) {
+                    if (va[k] == "cancel" || va[k] == "escalate") continue;     //the runner never ends a case
+                    if ((va[k] == "approve" || va[k] == "reject") && approversFor(*s, *t).empty()) continue;
+                    StepOption o = { t->getId(), va[k], t->getRetryCount() };
+                    out.push_back(o);
+                }
+            }
+            delete it;
+            return out;
+        }
+        bool step(const std::string& caseId, const StepOption& option) override {
+            TividyScenario* s = service.findCase(caseId);
+            if (s == nullptr) return false;
+            TividyScenario* current = service.scenario;
+            service.scenario = s;
+            Json r = Json::parse(service.actHere(option.action, option.taskId, ""));
+            service.scenario = current;
+            return r.value("ok", false);
+        }
+        bool finished(const std::string& caseId) override {
+            TividyScenario* s = service.findCase(caseId);
+            return s == nullptr || s->instance->getStatus() != WorkflowInstance::RUNNING;
+        }
+        int review(const std::string& caseId) override {
+            TividyScenario* s = service.findCase(caseId);
+            return s == nullptr ? 0 : service.reviewHere(*s);
+        }
+    private:
+        TividyService& service;
+        int industryId;
+        int opened;
+};
+
+void destroyDesk(ServiceDesk* desk) { delete desk; }
+
+std::string TividyService::batchJson() const {
+    Json b;
+    if (batch == nullptr) {
+        b["active"] = false;
+        return b.dump();
+    }
+    b["active"] = true;
+    b["policy"] = batch->policyName();
+    b["slots"] = batch->getSlots();
+    b["all"] = batch->getAll();
+    b["running"] = batch->getRunning();
+    b["waiting"] = Json(std::vector<std::string>(batch->getWaiting().begin(), batch->getWaiting().end()));
+    b["finished"] = batch->getFinished();
+    b["ticks"] = batch->getTicks();
+    b["steps"] = batch->getSteps();
+    b["reviews"] = batch->getReviews();
+    b["longestWait"] = batch->longestWait();
+    b["done"] = batch->isDone();
+    int completed = 0, failed = 0, reworks = 0, escalations = 0;
+    std::set<std::string> mine(batch->getAll().begin(), batch->getAll().end());
+    for (size_t i = 0; i < open.size(); ++i) {
+        if (!mine.count(open[i]->instance->getId())) continue;
+        if (open[i]->instance->getStatus() == WorkflowInstance::COMPLETED) ++completed;
+        if (open[i]->instance->getStatus() == WorkflowInstance::FAILED) ++failed;
+        WorkItemIterator* it = open[i]->instance->getRoot()->createIterator();
+        for (it->first(); !it->isDone(); it->next()) reworks += it->currentItem()->getChildCount() == 0 ? it->currentItem()->getRetryCount() : 0;
+        delete it;
+    }
+    for (size_t i = 0; i < catalog->feed.size(); ++i) {
+        if (catalog->feed[i].kind == "escalated" && mine.count(catalog->feed[i].caseId)) ++escalations;
+    }
+    b["summary"] = {{"completed", completed}, {"failed", failed}, {"reworks", reworks}, {"escalations", escalations}};
+    return b.dump();
+}
+
+std::string TividyService::startBatch(int industryId, int count, int slots, const std::string& policy) {
+    std::lock_guard<std::mutex> guard(lock);
+    std::vector<std::string> none;
+    if (catalog->find(industryId) == nullptr) return reply(false, "Unknown workflow id " + std::to_string(industryId) + ".", none);
+    if (count < 1 || count > 50) return reply(false, "Run between 1 and 50 tickets at a time.", none);
+    if (slots < 1 || slots > 20) return reply(false, "Use between 1 and 20 running slots.", none);
+    delete batch;
+    batch = nullptr;
+    destroyDesk(desk);
+    desk = new ServiceDesk(*this, industryId);
+    RunPolicy* p = policy == "declines" ? static_cast<RunPolicy*>(new WithDeclinesPolicy()) : new HappyPathPolicy();
+    TividyScenario* current = scenario;
+    batch = new BatchRunner(*desk, p, count, slots);
+    if (current != nullptr) scenario = current;
+    record("batch", "Run all tickets: " + std::to_string(count) + " " + catalog->find(industryId)->name + " ticket(s), " +
+           std::to_string(slots) + " at a time.", "");
+    Json j = Json::parse(reply(true, "Opened " + std::to_string(count) + " tickets: " + std::to_string(batch->getRunning().size()) +
+                                     " running, " + std::to_string(batch->getWaiting().size()) + " waiting.", none));
+    j["batch"] = Json::parse(batchJson());
+    return logged(j.dump(), Json({{"op", "batch"}, {"industryId", industryId}, {"count", count}, {"slots", slots}, {"policy", policy}}).dump());
+}
+
+std::string TividyService::tick(int ticks) {
+    std::lock_guard<std::mutex> guard(lock);
+    std::vector<std::string> none;
+    if (batch == nullptr) return reply(false, "No run is going. Start one with Run all tickets.", none);
+    int limit = ticks <= 0 ? 5000 : std::min(ticks, 1000);
+    bool wasDone = batch->isDone();
+    for (int i = 0; i < limit && !batch->isDone(); ++i) batch->tick();
+    if (batch->isDone() && !wasDone) {
+        Json b = Json::parse(batchJson());
+        record("batch-done", "Run finished: " + std::to_string(b["summary"]["completed"].get<int>()) + " completed, " +
+               std::to_string(b["summary"]["failed"].get<int>()) + " failed, in " + std::to_string(batch->getTicks()) + " ticks.", "");
+    }
+    Json j = Json::parse(reply(true, std::to_string(batch->getFinished().size()) + " of " + std::to_string(batch->getAll().size()) +
+                                     " done, " + std::to_string(batch->getRunning().size()) + " running, " +
+                                     std::to_string(batch->getWaiting().size()) + " waiting.", none));
+    j["batch"] = Json::parse(batchJson());
+    return logged(j.dump(), Json({{"op", "tick"}, {"ticks", ticks}}).dump());
+}
+
+std::string TividyService::stopBatch() {
+    std::lock_guard<std::mutex> guard(lock);
+    std::vector<std::string> none;
+    if (batch == nullptr) return reply(false, "No run is going.", none);
+    record("batch", "Run stopped after " + std::to_string(batch->getTicks()) + " ticks; the cases stay open as they are.", "");
+    delete batch;
+    batch = nullptr;
+    return logged(reply(true, "Stopped. The tickets stay open as they are.", none), "{\"op\":\"stop\"}");
 }
 
 std::string TividyService::report(const std::string& type) {
@@ -1753,6 +2142,10 @@ std::string TividyService::report(const std::string& type) {
         ReportScreen::showProgress(*scenario->instance->getRoot(), out);
     } else if (type == "escalations") {
         ReportScreen::showEscalations(*scenario->instance->getRoot(), out);
+    } else if (type == "stalled") {
+        StalledWorkVisitor stalled(scenario->changedAt, scenario->step, kStalledAfter);
+        stalled.visitAll(*scenario->instance->getRoot());
+        out << stalled.report();
     } else {
         j["error"] = "Unknown report '" + type + "'.";
         return j.dump();

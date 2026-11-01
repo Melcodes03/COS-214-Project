@@ -593,7 +593,7 @@ TEST_SUITE("Director: Industry 2 admissions") {
         CHECK(root->getChild(4)->getName() == "Enrolment");
         CHECK(idsOf(root) == "root S1 S1-T1 S1-T2 S2 S2-T1 S2-T2 S3 S3-T1 S3-T2 "
                              "S4 S4-T1 S4-T2 S4-T3 S5 S5-T1 S5-T2 ");
-        CHECK(find(root, "S4-T1")->getRequiredRole() == "Registrar");
+        CHECK(find(root, "S4-T1")->getRequiredRole() == "Faculty Reviewer");   //prepares the offer; the Registrar signs it off
         delete def;
     }
 
@@ -604,7 +604,7 @@ TEST_SUITE("Director: Industry 2 admissions") {
         std::string text = outline.getResult();
         CHECK(text.find("[S2] Verification (parallel)") != std::string::npos);
         CHECK(text.find("[S4] Decision (choice)") != std::string::npos);
-        CHECK(text.find("S4-T1 Issue offer of admission (Registrar) [priority 4] [audited]") != std::string::npos);
+        CHECK(text.find("S4-T1 Issue offer of admission (Faculty Reviewer) [priority 3] [audited]") != std::string::npos);
     }
 
     TEST_CASE("every sample application takes its own path through the decision") {

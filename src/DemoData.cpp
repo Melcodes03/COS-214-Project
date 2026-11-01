@@ -52,7 +52,7 @@ WorkflowSpec makeSupportSpec() {
     StageSpec resolution = stage("Resolution", SEQUENTIAL);
     resolution.tasks.push_back(task("Implement fix", "Engineer", 3, true));
     resolution.tasks.push_back(task("Verify fix", "Technical Assistant", 2, false));
-    resolution.tasks.back().signoffs = 1;   //verifying is an approval: approve = fixed, reject = rework
+    resolution.tasks.back().signoffs = 2;   //the fix is signed off by two people above the tester (MultiLevelApproval)
     spec.stages.push_back(resolution);
 
     StageSpec closure = stage("Closure", SEQUENTIAL);
@@ -112,8 +112,8 @@ WorkflowSpec makeAdmissionsSpec() {
 
     //first matching task wins; the task with no condition is the default branch
     StageSpec decision = stage("Decision", CHOICE);
-    decision.tasks.push_back(branch("Issue offer of admission", "Registrar", 4, true, "score", ">=", "70"));
-    decision.tasks.back().signoffs = 2;   //an offer needs two sign-offs (MultiLevelApproval)
+    decision.tasks.push_back(branch("Issue offer of admission", "Faculty Reviewer", 3, true, "score", ">=", "70"));
+    decision.tasks.back().signoffs = 1;   //a faculty reviewer prepares the offer; the Registrar signs it off
     decision.tasks.push_back(branch("Place applicant on waiting list", "Admissions Clerk", 1, false, "score", ">=", "55"));
     decision.tasks.push_back(branch("Send rejection notice", "Registrar", 4, true, "", "", ""));
     spec.stages.push_back(decision);

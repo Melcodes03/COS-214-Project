@@ -514,67 +514,93 @@ TEST_SUITE("a workflow built in the app") {
     }
 }
 
-TEST_SUITE("sign-offs (Strategy: SingleApproval, MultiLevelApproval)") {
+TEST_SUITE("sign-offs (Strategy: ApproverPolicy picks who, Single/MultiLevelApproval counts)") {
 
-    /// runs the support case up to "Verify fix" (S3-T2) and starts it
-    void upToVerify(TividyService& s) {
+    /// runs the support case up to "Verify fix" (S3-T2) and starts it; returns who holds it
+    std::string upToVerify(TividyService& s) {
         const char* order[] = {"S1-T1", "S1-T2", "S2-T1", "S2-T2", "S3-T1"};
         for (int i = 0; i < 5; ++i) REQUIRE(finish(s, order[i])["ok"] == true);
         REQUIRE(act(s, "allocate", "S3-T2")["ok"] == true);
         REQUIRE(act(s, "start", "S3-T2")["ok"] == true);
+        return task(parse(s.state()), "S3-T2")["assignedTo"];
     }
 
-    TEST_CASE("a sign-off task is finished by Approve, not Complete") {
+    TEST_CASE("a sign-off task is finished by Approve, not Complete, and lists who may approve") {
         TividyService s;
         s.loadIndustry(1, 0, "");
-        upToVerify(s);
+        std::string tester = upToVerify(s);
         Json t = task(parse(s.state()), "S3-T2");
         CHECK(allows(t, "approve"));
-        CHECK(allows(t, "reject"));
         CHECK(!allows(t, "complete"));
-        CHECK(t["signoffs"]["needed"] == 1);
+        CHECK(t["signoffs"]["needed"] == 2);
+        CHECK(t["signoffs"]["from"] == "Engineer or above");
+        CHECK(t["approvers"].size() == 2);   // Sipho (Engineer) and Naledi (Support Manager)
         CHECK(act(s, "complete", "S3-T2")["ok"] == false);
-        std::string who = t["assignedTo"];
-        Json a = act(s, "approve", "S3-T2");
-        REQUIRE(a["ok"] == true);
-        CHECK(task(a["state"], "S3-T2")["state"] == "Completed");
-        CHECK(task(a["state"], "S4-T1")["state"] == "Available");   // the next stage opened
-        for (size_t i = 0; i < a["state"]["participants"].size(); ++i) {
-            if (a["state"]["participants"][i]["name"] == who) CHECK(a["state"]["participants"][i]["workload"] == 0);
+        (void)tester;
+    }
+
+    TEST_CASE("the person who did the work cannot approve it; a higher level can") {
+        TividyService s;
+        s.loadIndustry(1, 0, "");
+        std::string tester = upToVerify(s);
+        Json own = act(s, "approve", "S3-T2", tester);
+        CHECK(own["ok"] == false);
+        CHECK(own["message"].get<std::string>().find("not from the person who did the work") != std::string::npos);
+        CHECK(act(s, "approve", "S3-T2", "Ayesha Patel")["ok"] == false);   // a lower level
+        Json first = act(s, "approve", "S3-T2", "Sipho Dlamini");
+        REQUIRE(first["ok"] == true);
+        CHECK(task(first["state"], "S3-T2")["approvedBy"][0] == "Sipho Dlamini");
+        CHECK(first["message"].get<std::string>().find("1 more needed") != std::string::npos);
+        CHECK(act(s, "approve", "S3-T2", "Sipho Dlamini")["ok"] == false);   // nobody signs twice
+        Json second = act(s, "approve", "S3-T2", "Naledi Khumalo");
+        CHECK(task(second["state"], "S3-T2")["state"] == "Completed");
+        CHECK(second["message"].get<std::string>().find("by Naledi Khumalo (the work was done by " + tester) != std::string::npos);
+        CHECK(first["message"].get<std::string>().find("by Sipho Dlamini") != std::string::npos);
+        CHECK(task(second["state"], "S4-T1")["state"] == "Available");
+        for (size_t i = 0; i < second["state"]["participants"].size(); ++i) {
+            if (second["state"]["participants"][i]["name"] == tester) CHECK(second["state"]["participants"][i]["workload"] == 0);
         }
     }
 
-    TEST_CASE("rejecting a sign-off sends the work back up the chain, and undo restores it") {
+    TEST_CASE("the manager console signs as the manager first, then the next person allowed") {
         TividyService s;
         s.loadIndustry(1, 0, "");
         upToVerify(s);
-        std::string who = task(parse(s.state()), "S3-T2")["assignedTo"];
-        Json r = act(s, "reject", "S3-T2");
+        Json a = act(s, "approve", "S3-T2");
+        CHECK(task(a["state"], "S3-T2")["approvedBy"][0] == "Naledi Khumalo");
+        Json b = act(s, "approve", "S3-T2");
+        CHECK(task(b["state"], "S3-T2")["approvedBy"][1] == "Sipho Dlamini");
+        CHECK(task(b["state"], "S3-T2")["state"] == "Completed");
+    }
+
+    TEST_CASE("undo takes the vote back, and a rejection sends the work up the chain") {
+        TividyService s;
+        s.loadIndustry(1, 0, "");
+        std::string tester = upToVerify(s);
+        act(s, "approve", "S3-T2", "Sipho Dlamini");
+        Json u = parse(s.undo());
+        CHECK(task(u["state"], "S3-T2")["approvedBy"].empty());
+        CHECK(task(u["state"], "S3-T2")["signoffs"]["given"] == 0);
+        Json r = act(s, "reject", "S3-T2", "Naledi Khumalo");
         REQUIRE(r["ok"] == true);
         Json t = task(r["state"], "S3-T2");
         CHECK(t["state"] == "Assigned");
         CHECK(t["retryCount"] == 1);
-        CHECK(t["assignedTo"] != who);
-        Json u = parse(s.undo());
-        CHECK(task(u["state"], "S3-T2")["state"] == "InProgress");
-        CHECK(task(u["state"], "S3-T2")["assignedTo"] == who);
-        CHECK(act(s, "approve", "S3-T2")["ok"] == true);   // a fresh vote after the undo
+        CHECK(t["assignedTo"] != tester);
     }
 
-    TEST_CASE("an offer of admission needs two sign-offs") {
+    TEST_CASE("an offer of admission is prepared by a faculty reviewer and signed by the Registrar") {
         TividyService s;
         s.loadIndustry(2, 0, "");   // score 78: offer
         const char* order[] = {"S1-T1", "S1-T2", "S2-T1", "S2-T2", "S3-T1", "S3-T2"};
         for (int i = 0; i < 6; ++i) finish(s, order[i]);
         act(s, "allocate", "S4-T1");
         act(s, "start", "S4-T1");
-        Json first = act(s, "approve", "S4-T1");
-        REQUIRE(first["ok"] == true);
-        CHECK(task(first["state"], "S4-T1")["state"] == "InProgress");
-        CHECK(task(first["state"], "S4-T1")["signoffs"]["given"] == 1);
-        CHECK(first["message"].get<std::string>().find("1 more needed") != std::string::npos);
-        Json second = act(s, "approve", "S4-T1");
-        CHECK(task(second["state"], "S4-T1")["state"] == "Completed");
+        Json t = task(parse(s.state()), "S4-T1");
+        CHECK(t["signoffs"]["from"] == "Registrar");
+        CHECK(t["approvers"][0] == "Busisiwe Moloi");
+        Json a = act(s, "approve", "S4-T1", "Busisiwe Moloi");
+        CHECK(task(a["state"], "S4-T1")["state"] == "Completed");
     }
 }
 
@@ -586,6 +612,7 @@ TEST_SUITE("the support case has a decision branch") {
         act(s, "allocate", "S3-T2");
         act(s, "start", "S3-T2");
         act(s, "approve", "S3-T2");
+        act(s, "approve", "S3-T2");   // two sign-offs
         finish(s, "S4-T1");
         return finish(s, "S4-T2")["state"];
     }
@@ -786,5 +813,147 @@ TEST_SUITE("saving across restarts") {
         TividyService third;
         CHECK(third.useLog(file) == 0);                        // reset emptied the log
         std::remove(file);
+    }
+}
+
+TEST_SUITE("Run all tickets (Mediator: BatchRunner, Strategy: RunPolicy)") {
+
+    int count(const Json& o, const std::string& status) {
+        int n = 0;
+        for (size_t i = 0; i < o["cases"].size(); ++i) n += o["cases"][i]["status"] == status ? 1 : 0;
+        return n;
+    }
+
+    TEST_CASE("15 tickets: 8 run, 7 wait, and a finished one lets the next start") {
+        TividyService s;
+        Json r = parse(s.startBatch(1, 15, 8, "happy"));
+        REQUIRE(r["ok"] == true);
+        CHECK(r["batch"]["running"].size() == 8);
+        CHECK(r["batch"]["waiting"].size() == 7);
+        Json o = parse(s.overview());
+        CHECK(o["cases"].size() == 15);
+        int waiting = 0;
+        for (size_t i = 0; i < o["cases"].size(); ++i) waiting += o["cases"][i].value("batch", "") == "waiting" ? 1 : 0;
+        CHECK(waiting == 7);
+        bool promoted = false;
+        for (int i = 0; i < 400 && !promoted; ++i) {
+            Json t = parse(s.tick(1));
+            promoted = t["batch"]["finished"].size() > 0 && t["batch"]["waiting"].size() < 7;
+        }
+        CHECK(promoted);
+    }
+
+    TEST_CASE("every ticket ends Completed through real engine steps, and it never deadlocks") {
+        TividyService s;
+        s.loadIndustry(2, 0, "");        // the case the user is looking at
+        s.startBatch(1, 15, 8, "happy");
+        Json t = parse(s.tick(0));   // finish instantly
+        REQUIRE(t["batch"]["done"] == true);
+        CHECK(t["batch"]["summary"]["completed"] == 15);
+        CHECK(t["batch"]["ticks"].get<int>() < 1000);
+        Json o = parse(s.overview());
+        CHECK(count(o, "Completed") == 15);
+        // the engine did it: approvals were signed by real approvers, not set directly
+        bool signedOff = false;
+        for (size_t i = 0; i < o["tasks"].size(); ++i) {
+            if (o["tasks"][i]["id"] == "S3-T2") signedOff = o["tasks"][i]["approvedBy"].size() == 2;
+        }
+        CHECK(signedOff);
+        CHECK(parse(s.state())["instanceId"] == "ADM-2001");                // still looking at the same case
+        CHECK(parse(s.state())["history"]["undoCount"].get<int>() == 0);   // which the run did not touch
+    }
+
+    TEST_CASE("with declines, work goes up the chain and the run still finishes") {
+        TividyService s;
+        s.startBatch(2, 10, 4, "declines");
+        Json t = parse(s.tick(0));
+        REQUIRE(t["batch"]["done"] == true);
+        CHECK(t["batch"]["summary"]["completed"].get<int>() + t["batch"]["summary"]["failed"].get<int>() == 10);
+        CHECK(t["batch"]["summary"]["reworks"].get<int>() > 0);
+    }
+
+    TEST_CASE("stop leaves the tickets as they are; bad input is refused") {
+        TividyService s;
+        s.startBatch(1, 5, 2, "happy");
+        s.tick(3);
+        CHECK(parse(s.stopBatch())["ok"] == true);
+        CHECK(parse(s.tick(1))["ok"] == false);
+        CHECK(parse(s.overview())["cases"].size() == 5);
+        CHECK(parse(s.startBatch(1, 0, 2, ""))["ok"] == false);
+        CHECK(parse(s.startBatch(1, 5, 99, ""))["ok"] == false);
+        CHECK(parse(s.startBatch(42, 5, 2, ""))["ok"] == false);
+    }
+
+    TEST_CASE("a run is saved and replayed exactly after a restart") {
+        const char* file = "test-batch-log.jsonl";
+        std::remove(file);
+        std::string before;
+        {
+            TividyService s;
+            s.useLog(file);
+            s.startBatch(1, 6, 3, "declines");
+            s.tick(7);
+            before = parse(s.overview())["tasks"].dump();
+        }
+        TividyService again;
+        again.useLog(file);
+        CHECK(parse(again.overview())["tasks"].dump() == before);
+        std::remove(file);
+    }
+}
+
+TEST_SUITE("the Reviewer at the end of the chain") {
+
+    TEST_CASE("when even the manager is full, the Reviewer flags the work and re-offers it later") {
+        TividyService s;
+        s.createWorkflow(R"({"name": "Tiny desk", "levels": ["Clerk", "Boss"],
+            "people": [{"name": "Cleo", "role": "Clerk", "capacity": 1}, {"name": "Bo", "role": "Boss", "capacity": 1}],
+            "stages": [{"name": "Work", "mode": "parallel", "tasks": [
+                {"name": "A", "role": "Clerk"}, {"name": "B", "role": "Clerk"}, {"name": "C", "role": "Clerk"}]}]})");
+        CHECK(act(s, "allocate", "S1-T1")["ok"] == true);   // Cleo
+        CHECK(act(s, "allocate", "S1-T2")["ok"] == true);   // passed up to Bo
+        Json full = act(s, "allocate", "S1-T3");            // everyone full: the Reviewer takes over
+        CHECK(full["ok"] == false);
+        CHECK(task(parse(s.state()), "S1-T3")["underReview"] == true);
+        Json lad = parse(s.report("stalled"));
+        CHECK(lad["content"].get<std::string>().find("Stalled work") != std::string::npos);
+        CHECK(parse(s.review())["message"].get<std::string>().find("nothing") != std::string::npos);
+        act(s, "start", "S1-T1");
+        act(s, "complete", "S1-T1");                        // Cleo is free again
+        Json r = parse(s.review());
+        CHECK(r["message"].get<std::string>().find("re-offered 1") != std::string::npos);
+        CHECK(task(r["state"], "S1-T3")["assignedTo"] == "Cleo");
+        CHECK(task(r["state"], "S1-T3")["underReview"] == false);
+    }
+
+    TEST_CASE("the manager is still the last level people can pass work to") {
+        TividyService s;
+        s.loadIndustry(1, 0, "");
+        act(s, "allocate", "S1-T1");
+        for (int i = 0; i < 3; ++i) act(s, "escalate", "S1-T1");
+        Json t = task(parse(s.state()), "S1-T1");
+        CHECK(t["assignedTo"] == "Naledi Khumalo");
+        CHECK(t["lastLevel"] == true);
+    }
+}
+
+TEST_SUITE("default scenarios") {
+
+    TEST_CASE("defaults open 6 untouched cases, and Reset to defaults gives the identical start") {
+        TividyService s;
+        Json d = parse(s.loadDefaults());
+        REQUIRE(d["ok"] == true);
+        Json o = parse(s.overview());
+        CHECK(o["cases"].size() == 6);
+        CHECK(o["cases"][0]["id"] == "SC-1001");
+        CHECK(o["cases"][3]["id"] == "ADM-2001");
+        CHECK(parse(s.state())["instanceId"] == "SC-1001");
+        std::string start = o["tasks"].dump();
+        finish(s, "S1-T1");
+        s.loadIndustry(2, 1, "");
+        CHECK(parse(s.loadDefaults())["ok"] == false);   // only when nothing is open
+        Json r = parse(s.resetToDefaults());
+        CHECK(r["ok"] == true);
+        CHECK(parse(s.overview())["tasks"].dump() == start);
     }
 }
