@@ -44,6 +44,13 @@ Participant* WorkAllocator::allocate(WorkItem& item) {
     return give(item, chosen);
 }
 
+Participant* WorkAllocator::allocateTo(WorkItem& item, Participant* who) {
+    if (who == nullptr || !who->canTakeWork()) {
+        return nullptr;
+    }
+    return give(item, who);
+}
+
 Participant* WorkAllocator::escalate(WorkItem& item) {
     if (chain == nullptr) {
         return nullptr;

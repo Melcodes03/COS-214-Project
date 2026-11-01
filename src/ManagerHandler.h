@@ -5,8 +5,10 @@
 
 /// Chain of Responsibility: ConcreteHandler. The last link in the chain.
 ///
-/// Always gives the task to the manager, so a task that no level below could
-/// take is never left without an owner.
+/// Gives the task to the manager when they have room. When the manager is full and a
+/// ReviewHandler follows, the Reviewer decides instead (so nothing is piled onto a full
+/// manager, and nothing silently falls off the end of the chain). With no Reviewer after it,
+/// the manager always takes it, as before.
 class ManagerHandler : public AssignmentHandler {
     private:
         Participant* manager;   ///< not owned

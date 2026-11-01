@@ -37,7 +37,7 @@ class ProgressReportVisitor : public WorkItemVisitor {
         int getStageCount() const;
         int countInState(const std::string& stateName) const;
         int percentComplete() const;   ///< completed tasks / all tasks, 0 if no tasks
-        std::string summary() const;   ///< e.g. "2 stages, 3 tasks, 33% complete"
+        std::string summary() const;   ///< e.g. "2 stages, 3 tasks, 33% complete" (stages that hold tasks)
 
         /// Stages that directly hold at least one task, in the order visited.
         std::vector<std::string> getStageNames() const;
