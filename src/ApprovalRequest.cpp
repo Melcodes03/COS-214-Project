@@ -27,4 +27,15 @@ bool ApprovalRequest::deadlinePassed() {
     return item->escalate();
 }
 
+int ApprovalRequest::voteCount() const { return (int)votes.size(); }
+
+bool ApprovalRequest::undoLastVote() {
+    if (votes.empty()) {
+        return false;
+    }
+    votes.pop_back();
+    decision = ApprovalStrategy::PENDING;   //votes after a decision are ignored, so it was pending before this vote
+    return true;
+}
+
 ApprovalStrategy::Decision ApprovalRequest::getDecision() const { return decision; }

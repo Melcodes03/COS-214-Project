@@ -4,6 +4,9 @@
 #include "WorkItemState.h"
 
 //State: CancelledState.h
+/**
+ * @brief State: ConcreteState. Final state: no operation is allowed any more.
+ */
 class CancelledState : public WorkItemState {
     public:
         static WorkItemState* instance();

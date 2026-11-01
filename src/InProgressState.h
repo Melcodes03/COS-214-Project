@@ -4,6 +4,9 @@
 #include "WorkItemState.h"
 
 //State: AssignedState.h
+/**
+ * @brief State: ConcreteState. Being worked on. It can be completed, rejected, escalated or cancelled.
+ */
 class InProgressState : public WorkItemState {
     public:
         static WorkItemState* instance();

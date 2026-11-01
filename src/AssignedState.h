@@ -4,6 +4,9 @@
 #include "WorkItemState.h"
 
 //State: AssignedState.h
+/**
+ * @brief State: ConcreteState. Given to a participant. It can be started, declined (back to Available), escalated or cancelled.
+ */
 class AssignedState : public WorkItemState {
     public:
         static WorkItemState* instance();
