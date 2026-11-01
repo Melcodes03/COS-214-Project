@@ -47,6 +47,17 @@ WorkflowInstance::Status WorkflowInstance::advance() {
     return status;
 }
 
+WorkflowInstance::Status WorkflowInstance::recomputeStatus() {
+    if (hasCancelledItem()) {
+        status = FAILED;
+    } else if (root->isCompleted()) {
+        status = COMPLETED;
+    } else {
+        status = RUNNING;
+    }
+    return status;
+}
+
 WorkflowInstance::Status WorkflowInstance::getStatus() const {
     return status;
 }

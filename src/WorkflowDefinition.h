@@ -5,7 +5,8 @@
 
 class WorkItem;
 
-//Basically the process description
+/// The reusable process template. Built by DefinitionBuilder (Builder) and
+/// holds the prototype tree that every WorkflowInstance clones (Prototype).
 
 class WorkflowDefinition{
     private:
@@ -17,6 +18,10 @@ class WorkflowDefinition{
         //takes ownership of the root
         WorkflowDefinition(const std::string& name, int version, WorkItem* root);
         ~WorkflowDefinition();
+
+        //owns the root, so copying is disabled (a copy would delete the tree twice)
+        WorkflowDefinition(const WorkflowDefinition&) = delete;
+        WorkflowDefinition& operator=(const WorkflowDefinition&) = delete;
 
         std::string getName() const;
         int getVersion() const;

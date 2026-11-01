@@ -63,8 +63,10 @@ int ProgressReportVisitor::percentComplete() const {
     return completed * 100 / tasks;
 }
 
+//Counts only the stages that hold tasks themselves, so the outer box that groups a whole
+//case is not reported as an extra stage ("4 stages", not "5 stages", for a 4-stage case).
 std::string ProgressReportVisitor::summary() const {
-    return std::to_string(stages) + " stages, " + std::to_string(tasks) + " tasks, "
+    return std::to_string(stageOrder.size()) + " stages, " + std::to_string(tasks) + " tasks, "
          + std::to_string(percentComplete()) + "% complete";
 }
 

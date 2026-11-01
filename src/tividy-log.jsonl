@@ -1,0 +1,102 @@
+{"at":1793433646,"caseIndex":2,"data":"","industryId":1,"op":"industry"}
+{"action":"allocate","at":1793433664,"caseId":"SC-1003","op":"act","taskId":"S1-T1","who":""}
+{"action":"start","at":1793433754,"caseId":"SC-1003","op":"act","taskId":"S1-T1","who":"Thabo Nkosi"}
+{"action":"complete","at":1793433776,"caseId":"SC-1003","op":"act","taskId":"S1-T1","who":"Thabo Nkosi"}
+{"action":"allocate","at":1793433792,"caseId":"SC-1003","op":"act","taskId":"S1-T2","who":""}
+{"action":"start","at":1793433798,"caseId":"SC-1003","op":"act","taskId":"S1-T2","who":""}
+{"action":"escalate","at":1793433803,"caseId":"SC-1003","op":"act","taskId":"S1-T2","who":"Thabo Nkosi"}
+{"action":"start","at":1793433817,"caseId":"SC-1003","op":"act","taskId":"S1-T2","who":"Lerato Mokoena"}
+{"action":"complete","at":1793433819,"caseId":"SC-1003","op":"act","taskId":"S1-T2","who":"Lerato Mokoena"}
+{"action":"allocate","at":1793433848,"caseId":"SC-1003","op":"act","taskId":"S2-T1","who":""}
+{"action":"start","at":1793433854,"caseId":"SC-1003","op":"act","taskId":"S2-T1","who":""}
+{"action":"complete","at":1793433865,"caseId":"SC-1003","op":"act","taskId":"S2-T1","who":"Lerato Mokoena"}
+{"at":1793433876,"index":0,"op":"case"}
+{"action":"allocate","at":1793433898,"caseId":"SC-1003","op":"act","taskId":"S2-T2","who":""}
+{"action":"start","at":1793433901,"caseId":"SC-1003","op":"act","taskId":"S2-T2","who":""}
+{"action":"complete","at":1793434018,"caseId":"SC-1003","op":"act","taskId":"S2-T2","who":"Sipho Dlamini"}
+{"at":1793434027,"index":0,"op":"case"}
+{"action":"allocate","at":1793434067,"caseId":"SC-1003","op":"act","taskId":"S3-T1","who":""}
+{"action":"start","at":1793434073,"caseId":"SC-1003","op":"act","taskId":"S3-T1","who":""}
+{"action":"complete","at":1793434074,"caseId":"SC-1003","op":"act","taskId":"S3-T1","who":""}
+{"action":"allocate","at":1793434075,"caseId":"SC-1003","op":"act","taskId":"S3-T2","who":""}
+{"action":"start","at":1793434076,"caseId":"SC-1003","op":"act","taskId":"S3-T2","who":""}
+{"action":"reject","at":1793434098,"caseId":"SC-1003","op":"act","taskId":"S3-T2","who":"Lerato Mokoena"}
+{"action":"start","at":1793434107,"caseId":"SC-1003","op":"act","taskId":"S3-T2","who":"Sipho Dlamini"}
+{"action":"reject","at":1793434116,"caseId":"SC-1003","op":"act","taskId":"S3-T2","who":"Sipho Dlamini"}
+{"action":"start","at":1793434124,"caseId":"SC-1003","op":"act","taskId":"S3-T2","who":"Naledi Khumalo"}
+{"action":"reject","at":1793434126,"caseId":"SC-1003","op":"act","taskId":"S3-T2","who":"Naledi Khumalo"}
+{"action":"start","at":1793434134,"caseId":"SC-1003","op":"act","taskId":"S3-T2","who":"Lerato Mokoena"}
+{"action":"escalate","at":1793434353,"caseId":"SC-1003","op":"act","taskId":"S3-T2","who":"Lerato Mokoena"}
+{"at":1793434367,"index":0,"op":"case"}
+{"action":"start","at":1793434442,"caseId":"SC-1003","op":"act","taskId":"S3-T2","who":""}
+{"at":1793434451,"op":"undo"}
+{"at":1793434454,"op":"undo"}
+{"at":1793434456,"op":"undo"}
+{"at":1793434457,"op":"undo"}
+{"at":1793434457,"op":"undo"}
+{"at":1793434458,"op":"undo"}
+{"at":1793434459,"op":"undo"}
+{"at":1793434459,"op":"undo"}
+{"at":1793434460,"op":"undo"}
+{"at":1793434460,"op":"undo"}
+{"at":1793434464,"op":"undo"}
+{"action":"complete","at":1793434468,"caseId":"SC-1003","op":"act","taskId":"S3-T1","who":""}
+{"action":"allocate","at":1793434471,"caseId":"SC-1003","op":"act","taskId":"S3-T2","who":""}
+{"action":"start","at":1793434473,"caseId":"SC-1003","op":"act","taskId":"S3-T2","who":""}
+{"action":"approve","at":1793434475,"caseId":"SC-1003","op":"act","taskId":"S3-T2","who":""}
+{"action":"allocate","at":1793434485,"caseId":"SC-1003","op":"act","taskId":"S4-T1","who":""}
+{"action":"start","at":1793434494,"caseId":"SC-1003","op":"act","taskId":"S4-T1","who":"Thabo Nkosi"}
+{"action":"decline","at":1793434501,"caseId":"SC-1003","op":"act","taskId":"S4-T1","who":"Thabo Nkosi"}
+{"action":"start","at":1793434510,"caseId":"SC-1003","op":"act","taskId":"S4-T1","who":"Lerato Mokoena"}
+{"action":"complete","at":1793434511,"caseId":"SC-1003","op":"act","taskId":"S4-T1","who":"Lerato Mokoena"}
+{"action":"allocate","at":1793434548,"caseId":"SC-1003","op":"act","taskId":"S4-T2","who":""}
+{"action":"start","at":1793434550,"caseId":"SC-1003","op":"act","taskId":"S4-T2","who":""}
+{"action":"complete","at":1793434551,"caseId":"SC-1003","op":"act","taskId":"S4-T2","who":""}
+{"action":"allocate","at":1793434571,"caseId":"SC-1003","op":"act","taskId":"S5-T2","who":""}
+{"action":"start","at":1793434583,"caseId":"SC-1003","op":"act","taskId":"S5-T2","who":""}
+{"action":"escalate","at":1793434587,"caseId":"SC-1003","op":"act","taskId":"S5-T2","who":""}
+{"action":"escalate","at":1793434589,"caseId":"SC-1003","op":"act","taskId":"S5-T2","who":""}
+{"action":"escalate","at":1793434589,"caseId":"SC-1003","op":"act","taskId":"S5-T2","who":""}
+{"action":"start","at":1793434604,"caseId":"SC-1003","op":"act","taskId":"S5-T2","who":""}
+{"action":"complete","at":1793434613,"caseId":"SC-1003","op":"act","taskId":"S5-T2","who":""}
+{"at":1793434928,"op":"workflow","spec":"{\"levels\":[\"1\",\"2\",\"3\",\"4\",\"5\",\"6\"],\"name\":\"Parallel Tests\",\"organisation\":\"COS226\",\"people\":[{\"capacity\":3,\"name\":\"OYUHH\",\"role\":\"1\"},{\"capacity\":3,\"name\":\"AHHH\",\"role\":\"2\"},{\"capacity\":3,\"name\":\"YOUNEEDTOLEAVE\",\"role\":\"3\"},{\"capacity\":3,\"name\":\"POIOP\",\"role\":\"4\"},{\"capacity\":3,\"name\":\"FGUIK\",\"role\":\"5\"},{\"capacity\":6,\"name\":\"67\",\"role\":\"6\"}],\"stages\":[{\"mode\":\"sequential\",\"name\":\"SEQUENTIAL\",\"tasks\":[{\"name\":\"SQ1\",\"role\":\"1\",\"signoffs\":0},{\"name\":\"SQ2\",\"role\":\"3\",\"signoffs\":0}]},{\"mode\":\"sequential\",\"name\":\"PARALLEL\",\"tasks\":[{\"name\":\"P1\",\"role\":\"1\",\"signoffs\":0},{\"name\":\"P2\",\"role\":\"3\",\"signoffs\":0}]},{\"mode\":\"sequential\",\"name\":\"END\",\"tasks\":[{\"name\":\"THANKS\",\"role\":\"6\",\"signoffs\":0}]}],\"workspace\":\"IT 4-4\"}"}
+{"action":"allocate","at":1793434952,"caseId":"PT-3001","op":"act","taskId":"S1-T1","who":""}
+{"action":"start","at":1793434953,"caseId":"PT-3001","op":"act","taskId":"S1-T1","who":""}
+{"action":"complete","at":1793434954,"caseId":"PT-3001","op":"act","taskId":"S1-T1","who":""}
+{"action":"allocate","at":1793434955,"caseId":"PT-3001","op":"act","taskId":"S1-T2","who":""}
+{"action":"start","at":1793434956,"caseId":"PT-3001","op":"act","taskId":"S1-T2","who":""}
+{"action":"complete","at":1793434957,"caseId":"PT-3001","op":"act","taskId":"S1-T2","who":""}
+{"action":"allocate","at":1793434959,"caseId":"PT-3001","op":"act","taskId":"S2-T1","who":""}
+{"action":"start","at":1793434960,"caseId":"PT-3001","op":"act","taskId":"S2-T1","who":""}
+{"action":"complete","at":1793434961,"caseId":"PT-3001","op":"act","taskId":"S2-T1","who":""}
+{"action":"allocate","at":1793434962,"caseId":"PT-3001","op":"act","taskId":"S2-T2","who":""}
+{"action":"start","at":1793434963,"caseId":"PT-3001","op":"act","taskId":"S2-T2","who":""}
+{"at":1793434967,"op":"undo"}
+{"at":1793434968,"op":"undo"}
+{"at":1793434969,"op":"undo"}
+{"action":"decline","at":1793434973,"caseId":"PT-3001","op":"act","taskId":"S2-T1","who":""}
+{"action":"cancel","at":1793435165,"caseId":"PT-3001","op":"act","taskId":"S2-T1","who":""}
+{"at":1793435169,"op":"undo"}
+{"action":"start","at":1793435171,"caseId":"PT-3001","op":"act","taskId":"S2-T1","who":""}
+{"action":"complete","at":1793435243,"caseId":"PT-3001","op":"act","taskId":"S2-T1","who":""}
+{"action":"allocate","at":1793435245,"caseId":"PT-3001","op":"act","taskId":"S2-T2","who":""}
+{"action":"start","at":1793435246,"caseId":"PT-3001","op":"act","taskId":"S2-T2","who":""}
+{"action":"complete","at":1793435246,"caseId":"PT-3001","op":"act","taskId":"S2-T2","who":""}
+{"action":"allocate","at":1793435248,"caseId":"PT-3001","op":"act","taskId":"S3-T1","who":""}
+{"action":"start","at":1793435249,"caseId":"PT-3001","op":"act","taskId":"S3-T1","who":""}
+{"action":"complete","at":1793435250,"caseId":"PT-3001","op":"act","taskId":"S3-T1","who":""}
+{"at":1793437034,"op":"workflow","spec":"{\"levels\":[\"dfghj\",\"gjhkgh\"],\"name\":\"dfg\",\"organisation\":\"cg\",\"people\":[],\"stages\":[{\"mode\":\"parallel\",\"name\":\"dgfhghj\",\"tasks\":[{\"name\":\"jhg\",\"role\":\"dfghj\",\"signoffs\":0}]}],\"workspace\":\"vcvb\"}"}
+{"at":1793437071,"caseIndex":0,"data":"","industryId":4,"op":"industry"}
+{"at":1793437161,"op":"workflow","spec":"{\"levels\":[\"xcvb\",\"ert\"],\"name\":\"sadfg\",\"organisation\":\"cg\",\"people\":[],\"stages\":[{\"mode\":\"parallel\",\"name\":\"wergthj\",\"tasks\":[{\"name\":\"1\",\"role\":\"xcvb\",\"signoffs\":0},{\"name\":\"2\",\"role\":\"xcvb\",\"signoffs\":0},{\"name\":\"3\",\"role\":\"ert\",\"signoffs\":0},{\"name\":\"4\",\"role\":\"ert\",\"signoffs\":0}]}],\"workspace\":\"vcvb\"}"}
+{"action":"allocate","at":1793437162,"caseId":"S-5001","op":"act","taskId":"S1-T1","who":""}
+{"action":"allocate","at":1793437164,"caseId":"S-5001","op":"act","taskId":"S1-T2","who":""}
+{"action":"decline","at":1793437170,"caseId":"S-5001","op":"act","taskId":"S1-T2","who":""}
+{"action":"start","at":1793437184,"caseId":"S-5001","op":"act","taskId":"S1-T2","who":""}
+{"action":"complete","at":1793437185,"caseId":"S-5001","op":"act","taskId":"S1-T2","who":""}
+{"action":"cancel","at":1793437393,"caseId":"S-5001","op":"act","taskId":"S1-T3","who":""}
+{"at":1793437407,"op":"undo"}
+{"at":1793437481,"index":0,"op":"case"}
+{"at":1793437486,"caseIndex":0,"data":"","industryId":1,"op":"industry"}
+{"action":"allocate","at":1793437490,"caseId":"SC-1001","op":"act","taskId":"S1-T1","who":""}
+{"action":"start","at":1793437491,"caseId":"SC-1001","op":"act","taskId":"S1-T1","who":""}
+{"action":"complete","at":1793525931,"caseId":"SC-1001","op":"act","taskId":"S1-T1","who":""}

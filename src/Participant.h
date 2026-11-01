@@ -20,7 +20,7 @@ class Participant {
         vector<WorkItem*> worklist;
 
     public:
-        Participant(const std::string& name, const std::string& role, int capacity);
+        Participant(const std::string& name, const std::string& role, int capacity  = 7);
 
         std::string getName() const;
         std::string getRole() const;

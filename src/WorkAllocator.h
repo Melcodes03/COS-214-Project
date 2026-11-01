@@ -50,6 +50,10 @@ class WorkAllocator {
         /// the worker is freed, and the item is given to the next level up.
         /// @return the new worker, or nullptr if there is no chain, no higher level, or the item
         ///         cannot be escalated or assigned.
+        /// Give @p item to a chosen person instead of letting the chain and strategy pick.
+        /// @return @p who, or nullptr if they cannot take work or the item cannot be assigned
+        Participant* allocateTo(WorkItem& item, Participant* who);
+
         Participant* escalate(WorkItem& item);
 
         /// The worker declined (Participant::decline() already freed them): the item is given

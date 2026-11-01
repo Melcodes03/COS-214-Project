@@ -42,7 +42,8 @@ class AllocationCommand : public Command {
          */
         AllocationCommand(WorkAllocator* allocator, WorkItem* item,
                           const std::vector<Participant*>& everyone,
-                          Operation operation, const std::string& name);
+                          Operation operation, const std::string& name,
+                          Participant* preferred = nullptr);
         ~AllocationCommand() override;
 
         AllocationCommand(const AllocationCommand&) = delete;
@@ -73,6 +74,7 @@ class AllocationCommand : public Command {
         std::vector<Participant*> everyone;
         Operation operation;
         std::string name;
+        Participant* preferred;           ///< manual choice of assignee, or nullptr
 
         WorkItemMemento* before;          ///< item snapshot taken by execute(); owned
         std::vector<Workload> saved;      ///< participant snapshots taken by execute()

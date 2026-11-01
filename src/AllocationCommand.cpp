@@ -5,9 +5,10 @@
 
 AllocationCommand::AllocationCommand(WorkAllocator* allocator, WorkItem* item,
                                      const std::vector<Participant*>& everyone,
-                                     Operation operation, const std::string& name)
+                                     Operation operation, const std::string& name,
+                                     Participant* preferred)
     : allocator(allocator), item(item), everyone(everyone), operation(operation), name(name),
-      before(nullptr), previousAssignee(nullptr), previousLevel(nullptr){}
+      preferred(preferred), before(nullptr), previousAssignee(nullptr), previousLevel(nullptr){}
 
 AllocationCommand::~AllocationCommand(){
     delete before;
@@ -24,7 +25,7 @@ bool AllocationCommand::participantsChanged() const {
 }
 
 bool AllocationCommand::execute(){
-    if (allocator == nullptr || item == nullptr || operation == nullptr){
+    if (allocator == nullptr || item == nullptr || (operation == nullptr && preferred == nullptr)){
         return false;
     }
     delete before;
@@ -42,7 +43,8 @@ bool AllocationCommand::execute(){
     previousLevel = allocator->getLevel(item->getId());
     std::string stateBefore = item->getStateName();
 
-    Participant* result = (allocator->*operation)(*item);
+    Participant* result = preferred != nullptr ? allocator->allocateTo(*item, preferred)
+                                               : (allocator->*operation)(*item);
 
     bool changed = result != nullptr || item->getStateName() != stateBefore || participantsChanged();
     if (!changed){
