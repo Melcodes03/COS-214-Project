@@ -8,6 +8,6 @@ SmsConnector::~SmsConnector()
 {
 }
 
-void SmsConnector::send(std::string number, std::string message, std::string p){
+void SmsConnector::send(std::string number, std::string message, std::string){   //SMS has no priority setting
     gateway.transmit(number, message);
 }

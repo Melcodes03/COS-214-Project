@@ -8,6 +8,6 @@ CommunicationAdapter::~CommunicationAdapter()
 {
 }
 
-void CommunicationAdapter::send(std::string recipient, std::string message, std::string p)
+void CommunicationAdapter::send(std::string, std::string, std::string)
 {   
 }

@@ -3,11 +3,12 @@
 
 #include "WorkItem.h"
 
-//Composite: leaf
+//Composite: Leaf. Prototype: ConcretePrototype (clone() copies the task fresh).
 class Task : public WorkItem {
     public: 
         Task(const std::string& id, const std::string& name);
         WorkItem* clone() const override;
+        void accept(WorkItemVisitor& visitor) override;   //Visitor: ConcreteElement
 }; 
 
 #endif //TASK_H

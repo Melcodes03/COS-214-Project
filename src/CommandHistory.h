@@ -29,6 +29,13 @@ class CommandHistory {
         int redoCount() const;
         std::string lastCommandName() const;   //"" if nothing to undo
 
+        /// Names of the commands that have been done and can be undone, oldest first.
+        /// Refused commands are never recorded, so they never appear here.
+        std::vector<std::string> getHistory() const;
+
+        /// Names of the commands that were undone and can be redone, next-to-redo first.
+        std::vector<std::string> getRedoList() const;
+
     private:
         std::vector<Command*> done;
         std::vector<Command*> undone;

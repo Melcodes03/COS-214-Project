@@ -4,6 +4,9 @@
 #include "WorkItemState.h"
 
 //State: EscalatedState.h
+/**
+ * @brief State: ConcreteState. Nobody responded in time. It can be reassigned to someone else, or cancelled.
+ */
 class EscalatedState : public WorkItemState {
     public:
         static WorkItemState* instance();
