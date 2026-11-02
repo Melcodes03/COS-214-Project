@@ -86,7 +86,7 @@ desk's capacity: no running slots, no waiting queue.
 **Before.** Cases only moved when someone clicked.
 
 **Change.**
-- `BatchRunner` (Mediator) opens N tickets, keeps `slots` running and the rest waiting.
+- `BatchRunner` opens N tickets, keeps `slots` running and the rest waiting.
 - Each tick it gives every running ticket one step. `RunPolicy` (Strategy) picks the step:
   - `HappyPathPolicy`: approve, complete, start, assign.
   - `WithDeclinesPolicy`: every other task is sent back once.
@@ -114,7 +114,7 @@ without hand-clicking, while staying honest to the engine.
 
 ## Pattern count after these changes
 
-The new roles are **Mediator** (`BatchRunner`) and 3 new Strategy families
+The new roles are 3 new Strategy families
 (`ApproverPolicy`, `ReviewAction`, `RunPolicy`). Chain of Responsibility gains a new handler
 (`ReviewHandler`), and Visitor a new visitor (`StalledWorkVisitor`). Update the GoF mapping
 table and the colour legend accordingly.

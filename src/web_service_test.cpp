@@ -816,7 +816,7 @@ TEST_SUITE("saving across restarts") {
     }
 }
 
-TEST_SUITE("Run all tickets (Mediator: BatchRunner, Strategy: RunPolicy)") {
+TEST_SUITE("Run all tickets (BatchRunner, Strategy: RunPolicy)") {
 
     int count(const Json& o, const std::string& status) {
         int n = 0;

@@ -221,7 +221,7 @@ to exactly that start. `--no-defaults` starts empty.
 
 ## Run all tickets
 
-`BatchRunner` (Mediator) opens `count` new cases, keeps `slots` of them running and the rest
+`BatchRunner` opens `count` new cases, keeps `slots` of them running and the rest
 waiting, and on every tick gives each running case one step chosen by `RunPolicy` (Strategy:
 `HappyPathPolicy`, or `WithDeclinesPolicy`, which sends every other task back once). It only
 uses actions the engine allows, through the same calls as the buttons, so every step is a
@@ -262,7 +262,7 @@ Activity kinds: `case-opened`, `workflow-created`, `assigned`, `started`, `compl
 | decline + pass on | one undoable step: `WorkerCommand` then `AllocationCommand` (reassign up the chain) |
 | approve, reject | `ApproverPolicy` picks who may sign; `ApprovalRequest` + `SingleApproval` / `MultiLevelApproval` count (Strategy); `ApprovalCommand` inside `SignoffCommand` (Command) |
 | review | `ReviewHandler` (Chain of Responsibility) + `ReviewAction` (Strategy); `StalledWorkVisitor` (Visitor + Iterator) |
-| run all tickets | `BatchRunner` (Mediator) over `CaseDesk`; `RunPolicy` (Strategy); every step a Command |
+| run all tickets | `BatchRunner` over `CaseDesk`; `RunPolicy` (Strategy); every step a Command |
 | create workflow | `readCustomIndustry` checks the spec, then the same path as load industry |
 | notifications | `ParticipantObserver` (Observer) sending through `EmailConnector` / `SmsConnector` (Adapter) |
 | load industry | `DemoData` spec, `WorkflowDirector` + `DefinitionBuilder` (Builder), `WorkflowInstance` (clone of the definition), `WorkAllocator` with a `LevelHandler` chain (Chain of Responsibility, Strategy) |

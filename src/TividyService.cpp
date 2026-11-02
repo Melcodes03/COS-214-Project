@@ -1986,8 +1986,6 @@ std::string TividyService::resetToDefaults() {
     return j.dump();
 }
 
-/// Mediator pattern: the cases as the BatchRunner (ConcreteMediator) sees them. Every step goes
-/// through the same actHere() as a button press, so it is a real Command in the case's history.
 class ServiceDesk : public CaseDesk {
     public:
         ServiceDesk(TividyService& service, int industryId) : service(service), industryId(industryId), opened(0) {}

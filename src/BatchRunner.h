@@ -7,7 +7,7 @@
 #include <vector>
 #include "RunPolicy.h"
 
-/// @brief Mediator pattern: the Colleague interface. What the runner may ask of the cases.
+/// @brief What the runner may ask of the cases.
 /// TividyService implements it, so every step is a real engine action (a Command in the
 /// case's own history) and the cases never know about each other or about the runner.
 class CaseDesk {
@@ -20,13 +20,7 @@ class CaseDesk {
         virtual int review(const std::string& caseId) = 0;                      ///< re-offers stalled work; how many
 };
 
-/// @brief Mediator pattern: ConcreteMediator. "Run all tickets".
-///
-/// Opens N tickets, keeps at most `slots` of them running (the desk's capacity) and the rest
-/// in a waiting queue. Each tick, every running ticket takes its next allowed step, chosen by
-/// the RunPolicy (Strategy). A finished ticket frees its slot and the next waiting ticket
-/// starts. A ticket that cannot move for a few ticks is sent to review. Time is driven by
-/// tick() calls (no thread), so a run is deterministic and testable.
+/// @brief Helper class to run all tickets".
 class BatchRunner {
     public:
         BatchRunner(CaseDesk& desk, RunPolicy* policy, int count, int slots);   ///< owns policy

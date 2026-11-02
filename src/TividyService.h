@@ -8,7 +8,7 @@
 
 struct TividyCatalog;    ///< the available industries (data from DemoData)
 struct TividyScenario;   ///< one loaded industry: definition, instance, people, allocator, history
-class BatchRunner;       ///< "Run all tickets" (Mediator)
+class BatchRunner;       ///< "Run all tickets"
 class ServiceDesk;       ///< the cases as BatchRunner sees them
 
 /// Facade: the one object the web layer talks to.
