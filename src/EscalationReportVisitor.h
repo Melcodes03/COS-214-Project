@@ -8,6 +8,7 @@
 
 //Visitor: ConcreteVisitor. Lists the work that needs a manager's attention:
 //tasks that were escalated or rejected, and the stage each one sits in.
+/** @brief Collects tasks and stages that require escalation attention. */
 class EscalationReportVisitor : public WorkItemVisitor {
     private:
         std::map<std::string, std::string> stageOf;   //child id -> name of the stage holding it
@@ -17,6 +18,7 @@ class EscalationReportVisitor : public WorkItemVisitor {
         void visitTask(Task& task) override;
         void visitStage(Stage& stage) override;
 
+        /** @brief Gets the escalation report entries. @return References to the collected report strings. */
         const std::vector<std::string>& getFlagged() const;
 };
 

@@ -11,6 +11,7 @@
 
 class Participant;
 
+/** @brief Observer that records state changes relevant to a participant. */
 class ParticipantObserver : public Observer
 {
 private:
@@ -22,6 +23,12 @@ private:
     Participant* participant;
 
 public:
+    /**
+     * @brief Constructs a participant observer.
+     * @param subject Work item to observe.
+     * @param interestedState State for which notifications are collected.
+     * @param p Participant receiving notifications.
+     */
     ParticipantObserver(WorkItem *subject, std::string interestedState, Participant* p);
     virtual ~ParticipantObserver();
     void addContactMethod(CommunicationAdapter* channel);

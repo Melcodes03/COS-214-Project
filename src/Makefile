@@ -54,7 +54,7 @@ ifeq ($(OS),Windows_NT)
 WEB_LIBS = -lws2_32
 endif
 
-.PHONY: all run clean test test_all test_cm test_vs test_chain test_builder test_composite test_workflow test_state test_adapter test_observer tui run_tui test_tui web run_web test_web
+.PHONY: all run clean test test_all test_cm test_vs test_chain test_builder test_composite test_workflow test_state test_adapter test_observer tui run_tui test_tui web run_web test_web doxygen open_doxygen clean_doxygen
 
 all: $(TARGET)
 
@@ -163,6 +163,27 @@ $(WEBTEST_TARGET): $(WEBTEST_OBJS)
 
 test_web: $(WEBTEST_TARGET)
 	./$(WEBTEST_TARGET)
+
+# Doxygen documentation targets
+
+doxygen:
+	doxygen Doxyfile
+
+open_doxygen: doxygen
+	@if command -v cmd.exe >/dev/null 2>&1; then \
+		cd .. && cmd.exe /c start "" "docs/doxygen/html/index.html"; \
+	elif command -v powershell.exe >/dev/null 2>&1; then \
+		cd .. && powershell.exe -NoProfile -Command "Start-Process (Resolve-Path 'docs/doxygen/html/index.html').Path"; \
+	elif command -v xdg-open >/dev/null 2>&1; then \
+		cd .. && xdg-open docs/doxygen/html/index.html; \
+	elif command -v open >/dev/null 2>&1; then \
+		cd .. && open docs/doxygen/html/index.html; \
+	else \
+		python3 -m webbrowser docs/doxygen/html/index.html 2>/dev/null || python -m webbrowser docs/doxygen/html/index.html; \
+	fi
+
+clean_doxygen:
+	cd .. && rm -rf docs/doxygen
 
 clean: 
 	rm -f TUI.o IndustrySetup.o tui_main.o tui_test.o $(TUI_TARGET) $(TUI_TEST_TARGET) \

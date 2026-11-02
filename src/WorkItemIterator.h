@@ -4,6 +4,7 @@
 class WorkItem;
 
 //Iterator
+/** @brief Abstract iterator for traversing work items. */
 class WorkItemIterator {
     public: 
         virtual ~WorkItemIterator() {}

@@ -11,6 +11,7 @@ class WorkItemState;
 //(TransitionCommand, CommandHistory) can only hold it and hand it back.
 //It owns its child snapshots, so a snapshot of a Stage is a full deep copy
 //of the stage's lifecycle data, not a shallow one.
+/** @brief Immutable snapshot of a work item and its descendants. */
 class WorkItemMemento {
     friend class WorkItem;
 
@@ -19,6 +20,7 @@ class WorkItemMemento {
         int retryCount;
         std::vector<WorkItemMemento*> children;
 
+        /** @brief Constructs an empty-level snapshot. @param state Work item's state at snapshot time. @param retryCount Retry count at snapshot time. */
         WorkItemMemento(WorkItemState* state, int retryCount);
         void addChild(WorkItemMemento* child);   //takes ownership
 
