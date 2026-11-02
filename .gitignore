@@ -1,0 +1,8 @@
+*.o
+tividy_test
+tividy_test.exe
+.vscode/
+cm_test
+vs_test
+chain_test
+chain_test.exe
