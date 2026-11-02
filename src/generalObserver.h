@@ -8,6 +8,7 @@
 
 // CONCRETE OBSERVER
 
+/** @brief Observer that sends work-item state notifications through a communication adapter. */
 class generalObserver : public Observer
 {
 private:
@@ -16,6 +17,12 @@ private:
     std::string recipient;
 
 public:
+    /**
+     * @brief Constructs a general work-item observer.
+     * @param subject Work item whose state changes are observed.
+     * @param channel Communication adapter used for notifications.
+     * @param recipient Notification destination.
+     */
     generalObserver(WorkItem *subject, CommunicationAdapter *channel, std::string recipient);
     virtual ~generalObserver();
     void setSubject(WorkItem *);

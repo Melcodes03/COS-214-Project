@@ -14,11 +14,18 @@ class WorkItemMemento;
 //The operation is passed as a pointer to a WorkItem member function, e.g.
 //  new TransitionCommand(item, &WorkItem::complete, "complete")
 //so a decorated item still runs its decorators (validation, auditing).
+/** @brief Command that performs and can undo a work-item transition. */
 class TransitionCommand : public Command {
     public:
         typedef bool (WorkItem::*Transition)();
 
         //target is not owned
+        /**
+         * @brief Constructs a transition command.
+         * @param target Work item receiving the transition; the caller retains ownership.
+         * @param transition Member function representing the transition to execute.
+         * @param name Display name of the command.
+         */
         TransitionCommand(WorkItem* target, Transition transition, const std::string& name);
         ~TransitionCommand() override;
 

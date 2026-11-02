@@ -25,6 +25,7 @@
 | A web browser | Any recent one | Only for the web interface |
 | valgrind | Any | Optional, Linux only, for memory checks |
 | Docker | Any | Optional, see "Running with Docker" at the end |
+| Doxygen | Any | Optional, see "Doxygen" at the end |
 
 Nothing else needs installing. The test framework (doctest 2.4.11) and the two libraries used by the web server (cpp-httplib 0.63.0 and nlohmann/json 3.12.0) are included in the repository.
 
@@ -204,6 +205,55 @@ From the top folder of the repository:
 The image runs the console demo and the tests.
 
 To use the web or text interface, build and run it directly as described in Section 3.
+
+## Doxygen
+
+Doxygen documentation is generated from the configuration in
+[`src/Doxyfile`](src/Doxyfile). The Makefile targets below must be run from the
+repository's `src` directory:
+
+```bash
+cd src
+```
+
+### Generate and open the documentation
+
+Install Doxygen first and make sure the `doxygen` command is available in your
+terminal:
+
+```text
+doxygen --version
+```
+
+Generate the HTML documentation:
+
+```bash
+make doxygen
+```
+
+Generate it and open `docs/doxygen/html/index.html` in the default browser:
+
+```bash
+make open_doxygen
+```
+
+The generated documentation is written to `docs/doxygen/html`.
+
+### Clean generated files
+
+Remove only the generated Doxygen documentation:
+
+```bash
+make clean_doxygen
+```
+
+To remove generated Doxygen documentation together with compiled object files,
+binaries, and other build products:
+
+```bash
+make clean
+make clean_doxygen
+```
 
 ---
 

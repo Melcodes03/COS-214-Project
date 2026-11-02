@@ -5,6 +5,7 @@
 #include "SmsGateway.h"
 #include "CommunicationAdapter.h"
 
+/** @brief Communication adapter for sending notifications by SMS. */
 class SmsConnector : public CommunicationAdapter
 {
 private:
@@ -12,7 +13,12 @@ private:
 public:
     SmsConnector(/* args */);
     ~SmsConnector();
-    void send(std::string number, std::string, std::string p = "n/a") override;
+    /**
+     * @brief Sends an SMS notification.
+     * @param number Destination phone number.
+     * @param message SMS text to send.
+     */
+    void send(std::string number, std::string message, std::string p = "n/a") override;
 };
 
 #endif
